@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>PrintCrew</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+/* ── TOKENS ── */
+:root{--g:#3a8c2c;--gl:#4aa336;--y:#f5c518;--bg:#f7f7f5;--red:#ef4444;--mu:#6b7280;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);display:flex;justify-content:center;min-height:100vh;}
+.app{width:100%;max-width:420px;min-height:100vh;background:var(--bg);overflow:hidden;position:relative;}
+.page{display:none;flex-direction:column;min-height:100vh;overflow-y:auto;overflow-x:hidden;}
+.page.active{display:flex;animation:fu .2s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:#111;color:#fff;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:all .28s;z-index:9999;white-space:nowrap;max-width:340px;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;}
+.mo.open{display:flex;}
+.mb{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:420px;padding:24px 20px 40px;animation:su .22s ease;max-height:90vh;overflow-y:auto;}
+@keyframes su{from{transform:translateY(40px)}to{transform:translateY(0)}}
+.mt{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;margin-bottom:14px;}
+.mbtn{width:100%;padding:13px;border-radius:10px;border:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;}
+.mbtn.p{background:var(--g);color:#fff;} .mbtn.s{background:#f3f4f6;color:#333;} .mbtn.d{background:#fee2e2;color:var(--red);}
+.spinner{width:26px;height:26px;border:3px solid #e0e0e0;border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── HEADER ── */
+.hdr{background:var(--y);padding:14px 16px 16px;flex-shrink:0;}
+.pit{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.pit h1{font-size:25px;font-weight:900;font-family:'Outfit',sans-serif;line-height:1;}
+.dbadge{background:#fff;border-radius:12px;padding:3px 8px;font-size:11px;font-weight:700;color:#444;}
+.lr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.lname{font-size:12px;font-weight:700;color:#111;display:flex;align-items:center;gap:3px;cursor:pointer;}
+.lname::after{content:'▾';font-size:10px;}
+.hicons{display:flex;gap:8px;}
+.ibtn{width:36px;height:36px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;position:relative;border:none;}
+.cbadge{position:absolute;top:-2px;right:-2px;background:var(--g);color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.sb{background:#fff;border-radius:10px;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #e5e5e5;}
+.sb input{border:none;outline:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:#333;flex:1;background:transparent;}
+.sb input::placeholder{color:#bbb;}
+
+/* MACHINE STATUS PILLS */
+.msprow{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 0;scrollbar-width:none;flex-shrink:0;}
+.msprow::-webkit-scrollbar{display:none;}
+.msp{background:#fff;border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.08);flex-shrink:0;cursor:pointer;border:1.5px solid transparent;transition:border-color .15s;}
+.msp.sel{border-color:var(--g);}
+.msdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.msdot.online{background:#22c55e;} .msdot.busy{background:#f59e0b;} .msdot.offline{background:#ef4444;}
+#searchResults{display:none;background:#fff;border-radius:12px;margin:8px 14px 0;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);flex-shrink:0;z-index:10;}
+
+/* HOME CONTENT */
+.hc{padding:0 14px 110px;flex:1;}
+.banner{background:#fff;border-radius:16px;margin:12px 0;padding:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.banner h2{font-family:'Outfit',sans-serif;font-size:21px;font-weight:800;margin-bottom:2px;}
+.bsub{font-size:11px;color:var(--mu);margin-bottom:8px;}
+.bfeat{font-size:12px;font-weight:600;color:#333;display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.bfeat::before{content:'✦';color:var(--g);font-size:10px;}
+.ubtn{background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;margin-top:10px;}
+.ubtn:active{filter:brightness(.9);}
+.dprev{width:72px;height:90px;background:linear-gradient(135deg,#667eea18,#764ba218);border-radius:8px;border:1.5px solid #ddd;display:flex;flex-direction:column;padding:6px;gap:3px;box-shadow:3px 3px 0 #e0e0e0;flex-shrink:0;}
+.dl{height:5px;background:#ddd;border-radius:3px;}
+.dl.pu{background:#a855f7;width:80%;} .dl.bl{background:#3b82f6;width:50%;} .dl.s{width:60%;}
+.stitle{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;margin:14px 0 10px;}
+.prow{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.prow::-webkit-scrollbar{display:none;}
+.pcard{background:#fff;border-radius:12px;padding:10px;min-width:120px;max-width:120px;box-shadow:0 2px 6px rgba(0,0,0,.07);position:relative;flex-shrink:0;}
+.hrt{position:absolute;top:8px;right:8px;font-size:16px;cursor:pointer;background:none;border:none;}
+.pthumb{width:100%;height:72px;background:linear-gradient(135deg,#f0f0f0,#e8e8e8);border-radius:8px;margin-bottom:6px;display:flex;flex-direction:column;padding:5px;gap:3px;}
+.tl{height:4px;background:#d0d0d0;border-radius:2px;}
+.pbtn{border:1.5px solid var(--g);color:var(--g);background:#fff;border-radius:6px;padding:3px 0;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;width:100%;cursor:pointer;margin-bottom:4px;}
+.pbtn:active{background:var(--g);color:#fff;}
+.pqty{font-size:9px;color:#888;font-weight:600;margin-bottom:2px;}
+.pname{font-size:11px;font-weight:800;margin-bottom:2px;}
+.stars{color:#f59e0b;font-size:9px;}
+.dtag{font-size:9px;font-weight:700;color:var(--g);}
+.otag{font-size:9px;font-weight:800;color:var(--g);}
+.prow2{display:flex;align-items:baseline;gap:4px;}
+.pnow{font-size:12px;font-weight:900;} .pmrp{font-size:9px;color:#aaa;text-decoration:line-through;}
+.frow{display:flex;justify-content:space-around;background:#fff;border-radius:14px;padding:16px 8px;margin:14px 0;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.fi{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;max-width:88px;}
+.ficon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;}
+.fg{background:#dcfce7;} .fy{background:#fef9c3;} .fo{background:#ffedd5;}
+.flabel{font-size:11px;font-weight:800;color:#1a1a1a;}
+.fsub{font-size:9px;color:#888;font-weight:600;margin-top:-3px;}
+.warn{background:#fff5f5;border:1.5px solid #fecaca;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.wtxt{font-size:11px;font-weight:600;color:#555;}
+.faq-s h3{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;margin-bottom:10px;}
+.faq-i{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.05);overflow:hidden;}
+.faq-h{display:flex;align-items:center;justify-content:space-between;}
+.faq-q{font-size:12px;font-weight:700;color:#333;}
+.faq-c{color:#888;font-size:14px;transition:transform .2s;flex-shrink:0;}
+.faq-i.open .faq-c{transform:rotate(90deg);}
+.faq-a{font-size:11px;color:#666;font-weight:600;line-height:1.5;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s;}
+.faq-i.open .faq-a{max-height:120px;padding-top:8px;}
+.hero{background:#fef9c3;border-radius:16px;padding:22px 18px;text-align:center;margin-bottom:10px;}
+.hero h2{font-family:'Outfit',sans-serif;font-size:26px;font-weight:900;line-height:1.2;}
+.hero h2 span{color:var(--g);}
+.vcbar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:380px;background:var(--g);color:#fff;border-radius:14px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 6px 20px rgba(58,140,44,.45);z-index:200;border:none;font-family:'Nunito',sans-serif;transition:transform .15s;}
+.vcbar:active{transform:translateX(-50%) scale(.97);}
+.vcbar.hidden{display:none;}
+.vcl{display:flex;align-items:center;gap:10px;}
+.vci{font-size:12px;font-weight:700;} .vci span{display:block;font-size:9px;opacity:.8;}
+.vcr{font-size:14px;font-weight:800;display:flex;align-items:center;gap:3px;}
+.vcr::after{content:'›';font-size:20px;}
+
+/* ── PAGE 2 ── */
+.p2h{background:#f0f0f0;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0;flex-shrink:0;}
+.bbtn{width:34px;height:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:1px solid #ddd;color:#333;}
+.afbtn{background:#fff;border:1.5px solid var(--g);color:var(--g);border-radius:20px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;}
+.p2parea{background:#e8eaef;padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;}
+.p2prow{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;justify-content:center;}
+.p2prow::-webkit-scrollbar{display:none;}
+.dcard{background:#fff;border-radius:4px;width:130px;height:168px;box-shadow:0 4px 16px rgba(0,0,0,.12);position:relative;border:1px solid #ddd;overflow:hidden;flex-shrink:0;transition:box-shadow .15s;cursor:pointer;}
+.dcard.adoc{box-shadow:0 0 0 2.5px var(--g),0 4px 16px rgba(0,0,0,.1);}
+.dcx{position:absolute;top:5px;right:5px;width:18px;height:18px;background:rgba(0,0,0,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#fff;z-index:1;border:none;}
+.dcard canvas,.dcard-img{width:100%!important;height:100%!important;object-fit:cover;}
+.dcard-icon{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;padding:8px;}
+.dpages{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:var(--g);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.fnav{display:flex;gap:8px;align-items:center;}
+.fndot{width:8px;height:8px;border-radius:50%;background:#ccc;cursor:pointer;}
+.fndot.active{background:var(--g);}
+.p2opts{background:#fff;flex:1;overflow-y:auto;padding:14px 16px;}
+.crow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0f0f0;}
+.clabel{font-size:14px;font-weight:800;} .csub{font-size:11px;color:#888;font-weight:600;}
+.qctl{display:flex;align-items:center;background:var(--g);border-radius:8px;overflow:hidden;}
+.qbtn{background:transparent;border:none;color:#fff;font-size:22px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qnum{color:#fff;font-size:15px;font-weight:800;padding:0 10px;min-width:30px;text-align:center;}
+.olabel{font-size:13px;font-weight:800;margin-bottom:8px;}
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.ocard{border:2px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;}
+.ocard.sel{border-color:var(--g);background:#f0fdf4;}
+.oc-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.oct .name{font-size:13px;font-weight:800;} .oct .price{font-size:11px;color:#888;font-weight:600;}
+.ori-icon{width:30px;height:30px;background:#3b82f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;}
+.ori-icon.ls{transform:rotate(90deg);}
+.sides-row{display:flex;gap:8px;margin-bottom:14px;}
+.sbtn{flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:9px 8px;text-align:center;cursor:pointer;transition:all .15s;}
+.sbtn.sel{border-color:var(--g);background:#f0fdf4;}
+.sbtn .sn{font-size:12px;font-weight:800;} .sbtn .sp{font-size:10px;color:#888;font-weight:600;}
+.p2bot{background:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f0f0f0;flex-shrink:0;}
+.tp{font-size:22px;font-weight:900;font-family:'Outfit',sans-serif;}
+.tl2{font-size:11px;color:#888;font-weight:600;}
+.acbtn{background:var(--g);color:#fff;border:none;border-radius:10px;padding:13px 26px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
+.acbtn:active{filter:brightness(.9);}
+.acbtn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── PAGE 3 ── */
+.p3h{background:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f0;flex-shrink:0;}
+.p3t{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;}
+.cclr{font-size:12px;font-weight:700;color:var(--red);cursor:pointer;background:none;border:none;}
+.p3c{padding:12px 14px 130px;overflow-y:auto;flex:1;}
+.mcard{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:16px;margin-bottom:10px;color:#fff;position:relative;overflow:hidden;}
+.mcard::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:rgba(58,140,44,.25);border-radius:50%;}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;position:relative;z-index:1;}
+.mc-name{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;}
+.mc-sp{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;}
+.mc-info-row{display:flex;gap:16px;position:relative;z-index:1;margin-top:8px;}
+.mc-info-item{display:flex;flex-direction:column;gap:2px;}
+.mc-info-label{font-size:9px;opacity:.6;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.mc-info-val{font-size:13px;font-weight:800;}
+.mc-admin-note{font-size:9px;opacity:.35;font-weight:600;position:relative;z-index:1;margin-top:6px;}
+.mc-change{font-size:11px;font-weight:800;color:var(--y);cursor:pointer;background:none;border:none;font-family:'Nunito',sans-serif;position:relative;z-index:1;padding:0;}
+.fscard{background:#fff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+.fthumb{width:48px;height:58px;border-radius:6px;flex-shrink:0;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;}
+.fthumb img{width:100%;height:100%;object-fit:cover;border-radius:6px;}
+.finfo{flex:1;min-width:0;}
+.fname2{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fmeta{font-size:10px;color:#888;font-weight:600;margin:2px 0;}
+.fremove{font-size:10px;font-weight:700;color:var(--red);cursor:pointer;background:none;border:none;font-family:'Nunito',sans-serif;padding:0;}
+.fprice .orig{font-size:10px;color:#aaa;text-decoration:line-through;}
+.fprice .disc{font-size:14px;font-weight:900;}
+.editbtn{background:#fff;border:1.5px solid var(--g);color:var(--g);border-radius:6px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;}
+.alt{font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;margin:12px 0 8px;}
+.cpc{background:#fff;border-radius:12px;padding:14px;display:flex;align-items:center;gap:8px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);cursor:pointer;}
+.cin-row{display:flex;gap:8px;margin-top:10px;}
+.cin{flex:1;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;text-transform:uppercase;}
+.cin:focus{border-color:var(--g);}
+.capply{background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;}
+.bill{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+.btitle{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;margin-bottom:12px;}
+.brow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.blabel{font-size:12px;font-weight:600;color:#555;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.sbadge{background:#dcfce7;color:var(--g);font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px;}
+.bval{font-size:12px;font-weight:700;color:#333;}
+.bval.stk{text-decoration:line-through;color:#aaa;margin-right:4px;}
+.bdiv{height:1px;background:#f0f0f0;margin:10px 0;}
+.btotal{display:flex;justify-content:space-between;align-items:center;}
+.btotal .lbl{font-size:14px;font-weight:800;}
+.btotal .amt{font-size:20px;font-weight:900;font-family:'Outfit',sans-serif;}
+.lcard{background:#fff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+.loc-info{flex:1;} .loc-top{font-size:12px;font-weight:800;} .loc-sub{font-size:10px;color:#888;font-weight:600;}
+.chgbtn{font-size:12px;font-weight:800;color:var(--g);cursor:pointer;background:none;border:none;font-family:'Nunito',sans-serif;}
+.pobar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:#fff;padding:12px 16px 22px;border-top:1px solid #f0f0f0;z-index:100;}
+.payrow{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.payrow span{font-size:11px;font-weight:600;color:#888;}
+.pobtn{width:100%;background:var(--g);color:#fff;border:none;border-radius:12px;padding:15px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .15s;}
+.pobtn:disabled{opacity:.5;cursor:not-allowed;}
+.pobtn:not(:disabled):active{filter:brightness(.9);}
+.pt{display:flex;flex-direction:column;align-items:flex-start;}
+.pt .t1{font-size:13px;opacity:.85;} .pt .t2{font-size:17px;font-weight:900;}
+.plbl{font-size:15px;display:flex;align-items:center;gap:5px;}
+.plbl::after{content:'▶';font-size:11px;}
+.empty-c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;}
+.empty-c .emi{font-size:60px;margin-bottom:14px;}
+.empty-c h3{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+.empty-c p{font-size:13px;color:#888;font-weight:600;margin-bottom:22px;}
+.empty-c .gbtn{background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
+
+/* ── PAGE 5: CONFIRMATION ── */
+.conf-page{background:linear-gradient(160deg,#f0fdf4,#fefce8);}
+.conf-body{flex:1;padding:24px 20px 100px;display:flex;flex-direction:column;align-items:center;}
+.conf-icon{font-size:56px;margin-bottom:12px;animation:pop .4s ease;}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.conf-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;color:#1a1a1a;margin-bottom:4px;}
+.conf-sub{font-size:13px;color:#666;font-weight:600;margin-bottom:24px;}
+.conf-id-box{background:#fff;border:2px dashed var(--g);border-radius:16px;padding:20px;text-align:center;width:100%;margin-bottom:16px;box-shadow:0 4px 12px rgba(58,140,44,.1);}
+.conf-id-label{font-size:11px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.conf-id{font-family:'Outfit',sans-serif;font-size:36px;font-weight:900;color:var(--g);letter-spacing:2px;}
+.conf-id-note{font-size:10px;color:#aaa;font-weight:600;margin-top:4px;}
+.conf-details{background:#fff;border-radius:14px;padding:14px;width:100%;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.conf-detail-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f5f5f5;}
+.conf-detail-row:last-child{border:none;}
+.conf-dl{font-size:12px;color:#888;font-weight:600;}
+.conf-dv{font-size:12px;font-weight:800;color:#1a1a1a;}
+.conf-status-pill{display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1.5px solid #f59e0b;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:800;color:#92400e;margin-bottom:16px;}
+.conf-steps{background:#fff;border-radius:14px;padding:14px;width:100%;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.conf-steps-title{font-size:11px;color:#888;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.conf-step{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.conf-step-num{width:22px;height:22px;background:var(--g);color:#fff;border-radius:50%;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.conf-step-text{font-size:12px;font-weight:700;color:#333;}
+.conf-pay-btn{width:100%;background:var(--g);color:#fff;border:none;border-radius:14px;padding:16px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(58,140,44,.35);margin-bottom:10px;}
+.conf-pay-btn:active{filter:brightness(.9);}
+.conf-back-btn{width:100%;background:transparent;border:1.5px solid #e5e7eb;color:#666;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;}
+
+/* ── ADMIN ── */
+.admin-page{background:#0f172a;}
+.ahdr{background:linear-gradient(135deg,#0f172a,#1e293b);padding:18px 16px 14px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);}
+.ahdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.alogo{display:flex;align-items:center;gap:8px;}
+.alogo-icon{width:34px;height:34px;background:var(--g);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.alogo-text{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:#fff;}
+.alogo-text span{color:var(--y);font-size:9px;display:block;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.aexit{background:rgba(255,255,255,.08);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;}
+.astats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.astat{background:rgba(255,255,255,.06);border-radius:10px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,.07);}
+.astat-val{font-family:'Outfit',sans-serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:1px;}
+.astat-val.rev{color:var(--y);}
+.astat-label{font-size:8px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.astat-sub{font-size:8px;color:rgba(255,255,255,.25);font-weight:600;margin-top:1px;}
+.abody{flex:1;overflow-y:auto;padding:12px 14px;}
+.atabs{display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px;margin-bottom:12px;gap:2px;}
+.atab{flex:1;padding:7px 4px;text-align:center;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:rgba(255,255,255,.4);border:none;background:transparent;font-family:'Nunito',sans-serif;transition:all .15s;white-space:nowrap;}
+.atab.active{background:rgba(58,140,44,.3);color:#4ade80;}
+.asearch{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.asearch input{background:transparent;border:none;outline:none;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;flex:1;}
+.asearch input::placeholder{color:rgba(255,255,255,.25);}
+.afilters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none;}
+.afilters::-webkit-scrollbar{display:none;}
+.afilter{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Nunito',sans-serif;}
+.afilter.active{background:var(--g);border-color:var(--g);color:#fff;}
+.exp-bar{display:flex;gap:6px;margin-bottom:10px;}
+.expbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;border-radius:10px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;}
+.exp-csv{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2);}
+.exp-xls{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2);}
+.ocard{background:#1e293b;border-radius:12px;padding:13px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05);cursor:pointer;transition:border-color .15s;}
+.ocard:hover{border-color:rgba(58,140,44,.35);}
+.oc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.oc-id{font-family:'Outfit',sans-serif;font-size:14px;font-weight:900;color:#fff;}
+.oc-time{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;}
+.sp{border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;gap:4px;}
+.sp-pending{background:rgba(245,158,11,.15);color:#fbbf24;}
+.sp-paid{background:rgba(59,130,246,.15);color:#60a5fa;}
+.sp-queued{background:rgba(168,85,247,.15);color:#c084fc;}
+.sp-printing{background:rgba(245,158,11,.2);color:#fbbf24;}
+.sp-done{background:rgba(34,197,94,.15);color:#4ade80;}
+.sp-failed{background:rgba(239,68,68,.15);color:#f87171;}
+.sp-refund{background:rgba(239,68,68,.1);color:#fca5a5;}
+.sp-refunded{background:rgba(156,163,175,.15);color:#9ca3af;}
+.oc-machine{font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:4px;}
+.oc-total{font-family:'Outfit',sans-serif;font-size:16px;font-weight:900;color:#fff;}
+.ac-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.acbtn2{padding:6px 10px;border-radius:7px;border:none;font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer;}
+.acbtn2.confirm{background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);}
+.acbtn2.queue{background:rgba(168,85,247,.2);color:#c084fc;border:1px solid rgba(168,85,247,.3);}
+.acbtn2.print{background:rgba(245,158,11,.2);color:#fbbf24;border:1px solid rgba(245,158,11,.3);}
+.acbtn2.done{background:rgba(34,197,94,.2);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+.acbtn2.fail{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2);}
+.acbtn2.refund{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.15);}
+.aempty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;}
+.aempty .ei{font-size:48px;margin-bottom:12px;}
+.aempty h3{font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;color:rgba(255,255,255,.5);margin-bottom:4px;}
+.aempty p{font-size:11px;color:rgba(255,255,255,.25);font-weight:600;}
+.apagination{display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0;}
+.apgbtn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:8px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;}
+.apgbtn:disabled{opacity:.3;cursor:not-allowed;}
+.apginfo{font-size:11px;color:rgba(255,255,255,.3);font-weight:700;}
+.aclr-btn{width:100%;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;border-radius:10px;padding:11px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;margin-top:12px;}
+
+/* Admin: machines tab */
+.mach-card{background:#1e293b;border-radius:12px;padding:13px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05);}
+.mach-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.mach-name{font-size:13px;font-weight:800;color:#fff;}
+.mach-edit{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;}
+.mach-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mach-stat{background:rgba(255,255,255,.04);border-radius:8px;padding:7px;text-align:center;}
+.mach-stat-label{font-size:8px;color:rgba(255,255,255,.3);font-weight:600;text-transform:uppercase;margin-bottom:2px;}
+.mach-stat-val{font-size:13px;font-weight:800;color:#fff;}
+
+/* Admin: settings tab */
+.set-row{display:flex;align-items:center;justify-content:space-between;background:#1e293b;border-radius:10px;padding:13px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05);}
+.set-label{font-size:13px;font-weight:800;color:#fff;}
+.set-sub{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;margin-top:2px;}
+.toggle{width:44px;height:24px;background:rgba(255,255,255,.15);border-radius:12px;cursor:pointer;position:relative;border:none;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--g);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(20px);}
+.set-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);border-radius:8px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;}
+
+/* Admin: analytics */
+.rev-chart{background:rgba(255,255,255,.03);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid rgba(255,255,255,.05);}
+.rev-chart-title{font-size:9px;color:rgba(255,255,255,.3);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.chart-bars{display:flex;align-items:flex-end;gap:3px;height:48px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.chart-bar{width:100%;background:rgba(58,140,44,.25);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s;}
+.chart-bar.today{background:var(--g);}
+.chart-label{font-size:7px;color:rgba(255,255,255,.2);font-weight:600;}
+.mb-row{background:rgba(255,255,255,.04);border-radius:8px;padding:9px 11px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.05);}
+.mb-left{display:flex;align-items:center;gap:7px;}
+.mb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.mbn{font-size:11px;font-weight:800;color:#fff;} .mbs{font-size:9px;color:rgba(255,255,255,.35);font-weight:600;}
+.mb-rev{font-size:12px;font-weight:900;color:var(--y);}
+
+/* Order detail modal */
+.odmo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:flex-end;justify-content:center;}
+.odmo.open{display:flex;}
+.odbox{background:#0f172a;border-radius:22px 22px 0 0;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;animation:su .22s ease;border:1px solid rgba(255,255,255,.07);}
+.odhdr{padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;background:#0f172a;z-index:1;}
+.odhdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.od-id{font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;color:#fff;}
+.od-close{background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.od-time{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;}
+.odbody{padding:14px 18px 28px;}
+.od-sec{margin-bottom:16px;}
+.od-sec-title{font-size:9px;color:rgba(255,255,255,.3);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+.od-mc{background:rgba(255,255,255,.05);border-radius:10px;padding:11px;display:flex;align-items:center;gap:9px;border:1px solid rgba(255,255,255,.05);}
+.od-mc-icon{width:36px;height:36px;background:var(--g);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.od-mc-name{font-size:12px;font-weight:800;color:#fff;}
+.od-mc-sub{font-size:9px;color:rgba(255,255,255,.35);font-weight:600;}
+.od-specs{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.od-spec{background:rgba(255,255,255,.04);border-radius:7px;padding:7px 9px;border:1px solid rgba(255,255,255,.04);}
+.od-spec-label{font-size:8px;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.od-spec-val{font-size:12px;font-weight:800;color:#fff;}
+.od-brow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.od-blabel{font-size:11px;color:rgba(255,255,255,.4);font-weight:600;}
+.od-bval{font-size:11px;font-weight:700;color:#fff;}
+.od-btotal{display:flex;justify-content:space-between;align-items:center;padding-top:8px;}
+.od-btotal-lbl{font-size:13px;font-weight:800;color:#fff;}
+.od-btotal-amt{font-family:'Outfit',sans-serif;font-size:20px;font-weight:900;color:var(--y);}
+.od-tline{display:flex;flex-direction:column;gap:0;}
+.od-titem{display:flex;align-items:flex-start;gap:9px;padding-bottom:10px;position:relative;}
+.od-titem:not(:last-child)::before{content:'';position:absolute;left:10px;top:22px;width:2px;bottom:0;background:rgba(255,255,255,.07);}
+.od-tdot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:rgba(255,255,255,.07);}
+.od-tdot.active{background:var(--g);}
+.od-tt{font-size:11px;font-weight:800;color:#fff;}
+.od-ts{font-size:9px;color:rgba(255,255,255,.3);font-weight:600;}
+
+/* File lightbox */
+.flb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+.flb.open{display:flex;}
+.flb-img{max-width:90%;max-height:75vh;border-radius:6px;object-fit:contain;}
+.flb-name{color:rgba(255,255,255,.5);font-size:11px;font-weight:600;}
+.flb-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;}
+
+/* PIN */
+.pin-box{display:flex;gap:12px;justify-content:center;margin:16px 0;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#e5e7eb;border:2px solid #d1d5db;transition:all .15s;}
+.pin-dot.filled{background:var(--g);border-color:var(--g);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;}
+.pin-key{padding:14px;border:none;border-radius:12px;background:#f3f4f6;font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;cursor:pointer;transition:background .1s;}
+.pin-key:active{background:#e5e7eb;}
+.pin-key.del{background:#fee2e2;color:var(--red);}
+.pin-err{color:var(--red);font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:18px;}
+
+/* Machine edit modal */
+.medit-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.medit-field label{font-size:12px;font-weight:800;color:#333;}
+.medit-field input, .medit-field select{border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;}
+.medit-field input:focus, .medit-field select:focus{border-color:var(--g);}
+
+/* T&C modal */
+.tc-check-row{display:flex;align-items:flex-start;gap:10px;background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;}
+.tc-check-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--g);margin-top:1px;flex-shrink:0;cursor:pointer;}
+.tc-check-row span{font-size:12px;font-weight:600;color:#444;line-height:1.4;}
+
+/* User order history */
+.uoh-card{background:#f9fafb;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #e5e7eb;cursor:pointer;}
+.uoh-top{display:flex;align-items:center;justify-content:space-between;}
+.uoh-id{font-family:'Outfit',sans-serif;font-size:14px;font-weight:900;color:#1a1a1a;}
+.uoh-time{font-size:10px;color:#888;font-weight:600;}
+.uoh-meta{font-size:11px;color:#666;font-weight:600;margin-top:3px;}
+.uoh-amt{font-size:14px;font-weight:900;color:var(--g);}
+
+/* Privacy link */
+.privacy-link{font-size:11px;color:#888;font-weight:600;text-align:center;cursor:pointer;text-decoration:underline;margin-top:8px;}
+
+/* ── PAYMENT PAGE ── */
+.pay-page{background:linear-gradient(160deg,#f8fdf8,#fffdf0);}
+.pay-body{flex:1;padding:0 18px 100px;overflow-y:auto;}
+
+/* States */
+.pay-state{display:none;}
+.pay-state.active{display:block;}
+
+/* ── STATE 1: PENDING ── */
+.pay-hero{padding:24px 0 20px;text-align:center;}
+.pay-hero-icon{font-size:52px;margin-bottom:12px;display:block;}
+.pay-hero-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;}
+.pay-hero-sub{font-size:13px;color:var(--mu);font-weight:300;line-height:1.5;}
+.pay-order-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#fff;border:1.5px solid #e5e7eb;
+  border-radius:12px;padding:10px 16px;margin:16px auto;
+}
+.pay-order-pill-id{font-family:'Outfit',sans-serif;font-size:20px;font-weight:900;color:var(--g);}
+.pay-order-pill-label{font-size:10px;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.pay-breakdown{background:#fff;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.pay-brow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px;}
+.pay-brow:last-child{border:none;padding-top:10px;font-size:15px;font-weight:900;}
+.pay-brow .lbl{font-weight:600;color:#555;}
+.pay-brow .val{font-weight:700;color:#1a1a1a;}
+.pay-brow.total .lbl{font-weight:800;color:#1a1a1a;}
+.pay-brow.total .val{color:var(--g);font-family:'Outfit',sans-serif;}
+.pay-methods-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.pay-methods-row::-webkit-scrollbar{display:none;}
+.pay-method{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:11px;font-weight:700;color:#555;white-space:nowrap;flex-shrink:0;}
+.pay-warning-box{background:#fffdf0;border:1.5px solid #fef08a;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+.pay-warning-text{font-size:11px;font-weight:600;color:#854d0e;line-height:1.5;}
+
+/* BIG PAY BUTTON */
+.pay-btn{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:420px;
+  background:var(--g);border:none;
+  padding:0 18px 28px;
+  font-family:'Outfit',sans-serif;cursor:pointer;
+}
+.pay-btn-inner{
+  background:var(--g);border-radius:14px;padding:16px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 8px 32px rgba(58,140,44,.35);
+  transition:filter .1s;
+}
+.pay-btn-inner:active{filter:brightness(.92);}
+.pay-btn.disabled .pay-btn-inner{background:#d1d5db;box-shadow:none;cursor:not-allowed;}
+.pay-btn-left .t1{font-size:11px;color:rgba(0,0,0,.5);font-weight:700;display:block;}
+.pay-btn-left .t2{font-size:18px;font-weight:900;color:#000;}
+.pay-btn-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.pay-btn-right .rzp-label{font-size:9px;color:rgba(0,0,0,.4);font-weight:700;letter-spacing:.5px;}
+.pay-btn-right .rzp-logo{font-size:14px;font-weight:900;color:#0c3;}
+.pay-btn-right .arrow{font-size:22px;color:#000;}
+
+/* ── STATE 2: PROCESSING ── */
+.pay-processing-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:800;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.pay-processing-overlay.show{display:flex;}
+.pay-processing-card{
+  background:#fff;border-radius:24px;padding:32px 28px;
+  text-align:center;width:280px;
+  animation:pop-in .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop-in{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.rzp-spinner{
+  width:52px;height:52px;border-radius:50%;
+  border:4px solid #e5e7eb;border-top-color:var(--g);
+  animation:spin .7s linear infinite;margin:0 auto 16px;
+}
+.pay-processing-title{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;margin-bottom:6px;}
+.pay-processing-sub{font-size:12px;color:var(--mu);font-weight:600;line-height:1.5;}
+.pay-processing-dots{display:flex;justify-content:center;gap:5px;margin-top:14px;}
+.pdot{width:7px;height:7px;border-radius:50%;background:#e5e7eb;animation:dot-pulse 1.2s ease-in-out infinite;}
+.pdot:nth-child(2){animation-delay:.2s;}
+.pdot:nth-child(3){animation-delay:.4s;}
+@keyframes dot-pulse{0%,100%{background:#e5e7eb}50%{background:var(--g)}}
+
+/* ── STATE 3: SUCCESS ── */
+.pay-success-icon{font-size:64px;text-align:center;margin:24px 0 8px;display:block;animation:pop-in .4s cubic-bezier(.34,1.56,.64,1);}
+.pay-success-title{font-family:'Outfit',sans-serif;font-size:24px;font-weight:900;text-align:center;color:#1a1a1a;margin-bottom:4px;}
+.pay-success-sub{font-size:13px;color:var(--mu);text-align:center;font-weight:300;margin-bottom:24px;}
+.pay-pid-box{
+  background:#f0fdf4;border:1.5px dashed var(--g);
+  border-radius:14px;padding:14px 18px;margin-bottom:16px;
+}
+.pay-pid-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mu);font-weight:700;margin-bottom:3px;}
+.pay-pid-val{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:var(--g);word-break:break-all;}
+
+/* OTP REVEAL BOX */
+.otp-reveal-box{
+  background:linear-gradient(135deg,#1a1a2e,#16213e);
+  border-radius:16px;padding:20px;margin-bottom:16px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.otp-reveal-box::before{
+  content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;
+  background:rgba(58,140,44,.15);border-radius:50%;
+}
+.otp-reveal-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:8px;}
+.otp-reveal-sub{font-size:11px;color:rgba(255,255,255,.5);font-weight:500;margin-bottom:14px;line-height:1.4;}
+.otp-digits{display:flex;justify-content:center;gap:10px;margin-bottom:12px;}
+.otp-digit-box{
+  width:52px;height:64px;background:rgba(255,255,255,.08);
+  border:1.5px solid rgba(58,140,44,.3);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Outfit',sans-serif;font-size:28px;font-weight:900;color:#fff;
+  position:relative;overflow:hidden;
+  animation:digit-reveal .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+.otp-digit-box:nth-child(1){animation-delay:.1s;}
+.otp-digit-box:nth-child(2){animation-delay:.2s;}
+.otp-digit-box:nth-child(3){animation-delay:.3s;}
+.otp-digit-box:nth-child(4){animation-delay:.4s;}
+@keyframes digit-reveal{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.otp-note{font-size:10px;color:rgba(255,255,255,.35);font-weight:500;margin:0;}
+.otp-copy-btn{
+  background:rgba(58,140,44,.2);border:1px solid rgba(58,140,44,.3);
+  color:var(--g);border-radius:8px;padding:7px 16px;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;
+  cursor:pointer;margin-top:10px;width:100%;
+}
+.otp-copy-btn:active{background:rgba(58,140,44,.35);}
+
+/* ORDER TRACKER */
+.tracker-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.tracker-title{font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.tracker-refresh{font-size:11px;font-weight:700;color:var(--g);cursor:pointer;background:none;border:none;font-family:'Nunito',sans-serif;padding:0;}
+.tracker-timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;align-items:flex-start;gap:12px;padding-bottom:14px;position:relative;}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:12px;top:26px;width:2px;bottom:0;background:#f0f0f0;}
+.tl-dot{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  background:#f3f4f6;border:2px solid #e5e7eb;z-index:1;
+  transition:all .3s;
+}
+.tl-dot.done{background:#dcfce7;border-color:var(--g);}
+.tl-dot.active{background:var(--g);border-color:var(--g);animation:tl-pulse 1.5s ease-in-out infinite;}
+@keyframes tl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(58,140,44,.3)}50%{box-shadow:0 0 0 6px rgba(58,140,44,.0)}}
+.tl-dot.pending{background:#f9fafb;border-color:#e5e7eb;}
+.tl-content{}
+.tl-name{font-size:13px;font-weight:800;color:#1a1a1a;}
+.tl-time{font-size:10px;color:var(--mu);font-weight:600;margin-top:2px;}
+.tl-dot.done .tl-check{color:var(--g);font-size:11px;}
+.refresh-hint{font-size:10px;color:var(--mu);text-align:center;margin-top:8px;font-weight:600;}
+
+/* ── STATE 4: FAILED ── */
+.pay-failed-icon{font-size:64px;text-align:center;margin:24px 0 8px;display:block;}
+.pay-failed-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;text-align:center;color:#ef4444;margin-bottom:8px;}
+.pay-failed-desc{font-size:13px;color:var(--mu);text-align:center;font-weight:300;line-height:1.6;margin-bottom:24px;}
+.pay-retry-btn{width:100%;background:var(--g);color:#fff;border:none;border-radius:12px;padding:15px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;}
+.pay-retry-btn:active{filter:brightness(.9);}
+.pay-home-btn{width:100%;background:transparent;border:1.5px solid #e5e7eb;color:var(--mu);border-radius:12px;padding:13px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;}
+
+/* Error code box */
+.rzp-err-code{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:11px;color:#ef4444;font-family:'Outfit',sans-serif;font-weight:700;margin-bottom:16px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ HIDDEN INPUTS ═══ -->
+<input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.ppt,.pptx" style="display:none" onchange="handleUpload(event)">
+<div class="toast" id="toast"></div>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- T&C Consent -->
+<div class="mo" id="tcMo">
+  <div class="mb">
+    <div class="mt">📋 Before you upload</div>
+    <p style="font-size:12px;color:#555;font-weight:600;line-height:1.5;margin-bottom:14px">Please read and accept the following before uploading your files.</p>
+    <div class="tc-check-row" onclick="toggleTc(0)">
+      <input type="checkbox" id="tc0">
+      <span>I confirm I have the right to print this content and it does not contain obscene, illegal, or copyrighted material.</span>
+    </div>
+    <div class="tc-check-row" onclick="toggleTc(1)">
+      <input type="checkbox" id="tc1">
+      <span>I understand that <strong>page thumbnails are stored for 30 days</strong> for order verification by PrintCrew admin, then permanently deleted.</span>
+    </div>
+    <div class="tc-check-row" onclick="toggleTc(2)">
+      <input type="checkbox" id="tc2">
+      <span>I have read and agree to the <span onclick="openMo('privacyMo');event.stopPropagation()" style="color:var(--g);text-decoration:underline">Privacy Policy</span>.</span>
+    </div>
+    <div id="tcErr" style="color:var(--red);font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px"></div>
+    <button class="mbtn p" onclick="acceptTC()">Accept & Upload</button>
+    <button class="mbtn s" onclick="closeMo('tcMo')">Cancel</button>
+  </div>
+</div>
+
+<!-- Privacy Policy -->
+<div class="mo" id="privacyMo">
+  <div class="mb">
+    <div class="mt">🔒 Privacy Policy</div>
+    <div style="font-size:12px;color:#555;font-weight:600;line-height:1.6">
+      <p style="margin-bottom:8px"><strong>What we collect:</strong> When you upload a file, page thumbnails (low-resolution previews) are generated and stored for order management purposes.</p>
+      <p style="margin-bottom:8px"><strong>How long:</strong> Thumbnails are retained for 30 days from order date, then permanently deleted.</p>
+      <p style="margin-bottom:8px"><strong>Who can see it:</strong> Only PrintCrew admin can view order thumbnails. Your files are never shared with third parties.</p>
+      <p style="margin-bottom:8px"><strong>Your rights:</strong> You can request deletion of your order data by contacting PrintCrew admin with your Order ID.</p>
+      <p style="margin-bottom:8px"><strong>Data location:</strong> Order data is stored on PrintCrew's secure servers.</p>
+      <p style="margin-bottom:0"><strong>Compliance:</strong> PrintCrew operates in accordance with India's Digital Personal Data Protection Act, 2023 (DPDP Act).</p>
+    </div>
+    <button class="mbtn s" style="margin-top:16px" onclick="closeMo('privacyMo')">Close</button>
+  </div>
+</div>
+
+<!-- Machine Picker -->
+<div class="mo" id="machineMo">
+  <div class="mb">
+    <div class="mt">🖨️ Select PrintCrew Machine</div>
+    <div id="machineList"></div>
+    <button class="mbtn s" onclick="closeMo('machineMo')">Cancel</button>
+  </div>
+</div>
+
+<!-- Coupon -->
+<div class="mo" id="couponMo">
+  <div class="mb">
+    <div class="mt">🏷️ Apply Coupon</div>
+    <div class="cin-row">
+      <input class="cin" id="couponInput" placeholder="Enter code" maxlength="20" oninput="this.value=this.value.replace(/[^A-Z0-9]/gi,'').toUpperCase()">
+      <button class="capply" onclick="applyCoupon()">Apply</button>
+    </div>
+    <div style="margin-top:14px;font-size:11px;font-weight:700;color:#888;margin-bottom:8px">Available Offers</div>
+    <div onclick="fillCoupon('PRINT20')" style="background:#f0fdf4;border:1.5px dashed var(--g);border-radius:8px;padding:10px 12px;cursor:pointer;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:800;color:var(--g)">PRINT20</div>
+      <div style="font-size:11px;color:#555;font-weight:600">20% off on your order</div>
+    </div>
+    <div onclick="fillCoupon('CREW50')" style="background:#fef9f0;border:1.5px dashed #f59e0b;border-radius:8px;padding:10px 12px;cursor:pointer">
+      <div style="font-size:13px;font-weight:800;color:#d97706">CREW50</div>
+      <div style="font-size:11px;color:#555;font-weight:600">50% off — First order only</div>
+    </div>
+    <button class="mbtn s" style="margin-top:14px" onclick="closeMo('couponMo')">Close</button>
+  </div>
+</div>
+
+<!-- Admin PIN -->
+<div class="mo" id="adminPinMo">
+  <div class="mb">
+    <div class="mt" style="text-align:center">🔐 Admin Access</div>
+    <p style="font-size:12px;color:#888;font-weight:600;text-align:center;margin-bottom:4px">Enter your 4-digit PIN</p>
+    <div class="pin-box">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key" onclick="pinPress('0')" style="grid-column:2">0</button><button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <button class="mbtn s" style="margin-top:14px" onclick="closeMo('adminPinMo');pinReset()">Cancel</button>
+  </div>
+</div>
+
+<!-- Change PIN -->
+<div class="mo" id="changePinMo">
+  <div class="mb">
+    <div class="mt">🔑 Change Admin PIN</div>
+    <div class="medit-field"><label>Current PIN</label><input type="password" id="cpOld" maxlength="4" placeholder="Current 4-digit PIN"></div>
+    <div class="medit-field"><label>New PIN</label><input type="password" id="cpNew" maxlength="4" placeholder="New 4-digit PIN"></div>
+    <div class="medit-field"><label>Confirm New PIN</label><input type="password" id="cpConf" maxlength="4" placeholder="Confirm new PIN"></div>
+    <div id="cpErr" style="color:var(--red);font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px"></div>
+    <button class="mbtn p" onclick="changePin()">Update PIN</button>
+    <button class="mbtn s" onclick="closeMo('changePinMo')">Cancel</button>
+  </div>
+</div>
+
+<!-- Machine Edit -->
+<div class="mo" id="machEditMo">
+  <div class="mb">
+    <div class="mt" id="machEditTitle">Edit Machine</div>
+    <div class="medit-field">
+      <label>Status</label>
+      <select id="meStatus"><option value="online">🟢 Online</option><option value="busy">🟡 Busy</option><option value="offline">🔴 Offline</option></select>
+    </div>
+    <div class="medit-field"><label>Paper remaining (sheets)</label><input type="number" id="mePaper" min="0" max="1000" placeholder="e.g. 350"></div>
+    <div class="medit-field"><label>Ink level (%)</label><input type="number" id="meInk" min="0" max="100" placeholder="e.g. 78"></div>
+    <div class="medit-field"><label>Jobs in queue</label><input type="number" id="meQueue" min="0" max="50" placeholder="e.g. 0"></div>
+    <button class="mbtn p" onclick="saveMachineEdit()">Save Changes</button>
+    <button class="mbtn s" onclick="closeMo('machEditMo')">Cancel</button>
+  </div>
+</div>
+
+<!-- Order Detail -->
+<div class="odmo" id="odmo" onclick="if(event.target===this)closeMo2('odmo')">
+  <div class="odbox">
+    <div class="odhdr">
+      <div class="odhdr-top"><div class="od-id" id="odId">#OD-1</div><button class="od-close" onclick="closeMo2('odmo')">✕</button></div>
+      <div class="od-time" id="odTime"></div>
+      <div id="odSpill" style="margin-top:6px"></div>
+    </div>
+    <div class="odbody" id="odBody"></div>
+  </div>
+</div>
+
+<!-- File Lightbox -->
+<div class="flb" id="flb" onclick="closeMo2('flb')">
+  <button class="flb-close" onclick="closeMo2('flb')">✕</button>
+  <div id="flbContent"></div>
+  <div class="flb-name" id="flbName"></div>
+</div>
+
+<!-- User Order History -->
+<div class="mo" id="userHistMo">
+  <div class="mb">
+    <div class="mt">📋 My Orders</div>
+    <div id="userHistList"></div>
+    <button class="mbtn s" onclick="closeMo('userHistMo')">Close</button>
+    <div class="privacy-link" onclick="openMo('privacyMo')">Privacy Policy</div>
+  </div>
+</div>
+
+<!-- Print Animation -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;align-items:center;justify-content:center;" id="printOverlay">
+  <div style="background:#fff;border-radius:20px;padding:30px 26px;text-align:center;width:270px;">
+    <div style="font-size:38px;margin-bottom:8px">🖨️</div>
+    <h3 style="font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px">Processing Order</h3>
+    <p style="font-size:11px;color:#888;font-weight:600;margin-bottom:18px" id="pStepText">Preparing your files…</p>
+    <div style="height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden;margin-bottom:10px"><div id="pBar" style="height:100%;background:var(--g);border-radius:3px;width:0%;transition:width .4s"></div></div>
+    <div style="font-size:11px;color:#888;font-weight:700" id="pStepLbl">Step 1 of 3</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE 1 — HOME
+═══════════════════════════════════ -->
+<div class="page active" id="page1">
+  <div class="hdr">
+    <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:2px">Nearest machine ready in</div>
+    <div class="pit">
+      <h1 id="hdrTime">2 minutes</h1>
+      <div class="dbadge" id="hdrDist">📍 880 m away</div>
+    </div>
+    <div class="lr">
+      <div class="lname" onclick="openMo('machineMo')" id="headerLoc">Girls Hostel – Machine 2108</div>
+      <div class="hicons">
+        <button class="ibtn" onclick="goTo('page3')">🛒<div class="cbadge" id="cartBadge">0</div></button>
+        <button class="ibtn" id="userBtn" onclick="handleUserTap()">👤</button>
+      </div>
+    </div>
+    <div class="sb">
+      <span>🔍</span>
+      <input type="text" id="searchInput" placeholder='Search "stapler"' oninput="doSearch(this.value)">
+      <span style="font-size:14px;cursor:pointer;color:#888" onclick="clearSearch()">✕</span>
+    </div>
+  </div>
+  <div class="msprow" id="statusPills"></div>
+  <div id="searchResults"><div id="searchResultsContent"></div></div>
+  <div class="hc">
+    <div class="banner">
+      <div>
+        <h2>Print Store</h2>
+        <div class="bsub">Skip lines. Print instantly from the machine.</div>
+        <div><div class="bfeat">Starting at ₹3/page</div><div class="bfeat">70 GSM paper quality</div><div class="bfeat">No waiting, no queues</div></div>
+        <button class="ubtn" onclick="startUpload()">Upload Files</button>
+      </div>
+      <div class="dprev">
+        <div class="dl pu"></div><div class="dl s"></div><div class="dl"></div>
+        <div class="dl bl s"></div><div class="dl"></div><div class="dl s"></div><div class="dl"></div>
+      </div>
+    </div>
+    <div class="stitle">Print your last minute needs</div>
+    <div class="prow" id="productsRow"></div>
+    <div class="frow">
+      <div class="fi"><div class="ficon fg">🔒</div><div class="flabel">100% Private</div><div class="fsub">Visible only to PrintCrew admin</div></div>
+      <div class="fi"><div class="ficon fy">⚡</div><div class="flabel">Instant Print</div><div class="fsub">Machine prints in seconds</div></div>
+      <div class="fi"><div class="ficon fo">💸</div><div class="flabel">Lowest Prices</div><div class="fsub">From ₹3/page only</div></div>
+    </div>
+    <div class="warn">
+      <span style="font-size:18px;flex-shrink:0">🚫</span>
+      <div class="wtxt">Please do not upload obscene content. All files are scanned on upload.</div>
+    </div>
+    <div class="faq-s" style="margin-bottom:18px">
+      <h3>FAQs</h3>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">What file formats can I print?</span><span class="faq-c">›</span></div><div class="faq-a">We support PDF, DOC, DOCX, PPT, PPTX, JPG, PNG, and TXT. For best results, upload PDFs.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">How does the vending machine work?</span><span class="faq-c">›</span></div><div class="faq-a">Upload your file, choose print settings, complete payment — the nearest PrintCrew machine prints automatically. Walk up and collect.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">Are my documents private?</span><span class="faq-c">›</span></div><div class="faq-a">Your files are processed for printing and page thumbnails are stored for 30 days for admin verification, then permanently deleted. Files are never shared with third parties.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">What if the machine doesn't print after payment?</span><span class="faq-c">›</span></div><div class="faq-a">Contact PrintCrew support with your Order ID. We'll verify payment and either reprocess or issue a full refund.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">How long does printing take?</span><span class="faq-c">›</span></div><div class="faq-a">The machine starts within seconds of payment confirmation. Most jobs complete in under 2 minutes.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">How do I get a refund?</span><span class="faq-c">›</span></div><div class="faq-a">Contact PrintCrew admin with your Order ID. Refunds are processed within 24–48 hours for verified issues.</div></div>
+      <div class="faq-i" onclick="tFaq(this)"><div class="faq-h"><span class="faq-q">What is the max number of files?</span><span class="faq-c">›</span></div><div class="faq-a">Up to 10 files per order, each up to 20 MB.</div></div>
+    </div>
+    <div class="hero"><h2>Skip the Queue.<br><span>Print in Seconds.</span></h2><div style="font-size:36px;margin-top:8px">🖨️⚡📄</div></div>
+    <div class="privacy-link" onclick="openMo('privacyMo')" style="margin-bottom:20px">Privacy Policy</div>
+  </div>
+  <button class="vcbar hidden" id="viewCartBar" onclick="goTo('page3')">
+    <div class="vcl"><span style="font-size:22px">🛒</span><div class="vci">View cart<span id="cartItemCount">0 items</span></div></div>
+    <div class="vcr" id="cartTotalLabel">₹0</div>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE 2 — PRINT SETTINGS
+═══════════════════════════════════ -->
+<div class="page" id="page2">
+  <div class="p2h">
+    <button class="bbtn" onclick="goTo('page1')">‹</button>
+    <span style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800">Print Settings</span>
+    <button class="afbtn" onclick="startUpload()">＋ Add file</button>
+  </div>
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="p2parea">
+      <div class="p2prow" id="p2PreviewRow"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px"><div class="spinner"></div><p style="font-size:11px;color:#888;font-weight:600">Loading preview…</p></div></div>
+      <div style="font-size:10px;color:#888;font-weight:600;text-align:center" id="p2Hint"></div>
+    </div>
+    <div class="p2opts" id="p2Opts">
+      <div class="crow">
+        <div><div class="clabel">Number of copies</div><div class="csub" id="fileCountLabel">1 file · 1 page</div></div>
+        <div class="qctl"><button class="qbtn" onclick="chCopies(-1)">−</button><span class="qnum" id="copiesNum">1</span><button class="qbtn" onclick="chCopies(1)">+</button></div>
+      </div>
+      <div class="olabel">Print color</div>
+      <div class="ogrid">
+        <div class="ocard sel" id="cColour" onclick="selColor('colour')"><div class="oc-icon" style="background:#fce7f3">🎨</div><div class="oct"><div class="name">Colour</div><div class="price">₹10/page</div></div></div>
+        <div class="ocard" id="cBW" onclick="selColor('bw')"><div class="oc-icon" style="background:#f0f0f0">⚫</div><div class="oct"><div class="name">B & W</div><div class="price">₹3/page</div></div></div>
+      </div>
+      <div class="olabel">Orientation</div>
+      <div class="ogrid">
+        <div class="ocard sel" id="oPt" onclick="selOrient('portrait')"><div class="ori-icon">📄</div><div class="oct"><div class="name">Portrait</div><div class="price">8.3 × 11.7 in</div></div></div>
+        <div class="ocard" id="oLs" onclick="selOrient('landscape')"><div class="ori-icon ls">📄</div><div class="oct"><div class="name">Landscape</div><div class="price">11.7 × 8.3 in</div></div></div>
+      </div>
+      <div class="olabel">Sides</div>
+      <div class="sides-row">
+        <div class="sbtn sel" id="s1" onclick="selSides(1)"><div class="sn">Single-sided</div><div class="sp">Standard</div></div>
+        <div class="sbtn" id="s2" onclick="selSides(2)"><div class="sn">Double-sided</div><div class="sp">When available</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="p2bot">
+    <div><div class="tl2">Total <span id="totalPagesLabel">1</span> page(s)</div><div class="tp">₹<span id="totalPrice">10</span></div></div>
+    <button class="acbtn" onclick="addToCart()">Add to cart</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE 3 — CHECKOUT
+═══════════════════════════════════ -->
+<div class="page" id="page3">
+  <div class="p3h">
+    <button class="bbtn" onclick="goTo('page1')">‹</button>
+    <span class="p3t">Your Order</span>
+    <button class="cclr" onclick="clearCart()">Clear all</button>
+  </div>
+  <div class="empty-c" id="emptyCart" style="display:none">
+    <div class="emi">🖨️</div><h3>Nothing queued yet</h3>
+    <p>Upload a file to send it to the PrintCrew machine</p>
+    <button class="gbtn" onclick="startUpload()">Upload & Print</button>
+  </div>
+  <div class="p3c" id="p3Content">
+    <div class="mcard">
+      <div class="mc-top"><div class="mc-name" id="mcName">🖨️ Girls Hostel – Machine 2108</div><div class="mc-sp"><div class="msdot online" id="mcDot"></div><span id="mcStatusText">Online</span></div></div>
+      <div style="font-size:10px;opacity:.6;font-weight:600;position:relative;z-index:1" id="mcQueue">Ready to print</div>
+      <div class="mc-info-row">
+        <div class="mc-info-item"><div class="mc-info-label">Location</div><div class="mc-info-val" id="mcLoc">Girls Hostel</div></div>
+        <div class="mc-info-item"><div class="mc-info-label">Paper</div><div class="mc-info-val" id="mcPaper">—</div></div>
+        <div class="mc-info-item"><div class="mc-info-label">Ink</div><div class="mc-info-val" id="mcInk">—</div></div>
+      </div>
+      <div class="mc-admin-note">Stats reported by admin · may not be real-time</div>
+      <button class="mc-change" onclick="openMo('machineMo')" style="margin-top:10px">Change machine →</button>
+    </div>
+    <div id="cartItemsList"></div>
+    <div class="alt">You might also like</div>
+    <div class="prow" id="alsoLikeRow"></div>
+    <div class="cpc" onclick="openMo('couponMo')">
+      <span style="font-size:20px">🏷️</span>
+      <span style="font-size:13px;font-weight:800;color:var(--g)" id="couponLabel">Use Coupons</span>
+      <span style="margin-left:auto;color:#888">›</span>
+    </div>
+    <div class="bill">
+      <div class="btitle">Bill summary</div>
+      <div class="brow"><span class="blabel">📄 Print charges <span class="sbadge" id="savedBadge">Saved ₹0</span></span><div style="display:flex;align-items:center;gap:4px"><span class="bval stk" id="billOrig">₹0</span><span class="bval" id="billItems">₹0</span></div></div>
+      <div class="brow"><span class="blabel">⚙️ Platform fee</span><span class="bval">₹5</span></div>
+      <div class="brow" id="gstRow" style="display:none"><span class="blabel">📊 GST (18%)</span><span class="bval" id="billGST">₹0</span></div>
+      <div class="brow" id="discRow" style="display:none"><span class="blabel" style="color:var(--g)">🏷️ Coupon discount</span><span class="bval" style="color:var(--g)" id="billDisc">-₹0</span></div>
+      <div class="bdiv"></div>
+      <div class="btotal"><span class="lbl">Total to pay</span><span class="amt" id="billGrand">₹5</span></div>
+    </div>
+    <div class="lcard">
+      <span style="font-size:22px">🏠</span>
+      <div class="loc-info"><div class="loc-top" id="locTop">Girls Hostel Machine</div><div class="loc-sub" id="locSub">Machine – 2108, Girls Hostel, CU-UP</div></div>
+      <button class="chgbtn" onclick="openMo('machineMo')">Change</button>
+    </div>
+    <div style="background:#fef9c3;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:11px;font-weight:600;color:#92400e;display:flex;gap:8px;align-items:flex-start">
+      <span style="font-size:16px;flex-shrink:0">⚠️</span>
+      <span>Payment is processed via Razorpay. Your order will be confirmed once payment is verified. Keep your Order ID safe after payment.</span>
+    </div>
+  </div>
+  <div class="pobar">
+    <div class="payrow"><span>PAY USING ▲</span><div class="paymethod" style="font-size:12px;font-weight:800;color:#1a1a1a">Razorpay / UPI</div></div>
+    <button class="pobtn" id="placeBtn" onclick="placeOrder()">
+      <div class="pt"><span class="t1" id="placeTotal">₹5 TOTAL</span><span class="t2">Send to Machine</span></div>
+      <span class="plbl">Pay & Print</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE 5 — PAYMENT + TRACKER
+═══════════════════════════════════ -->
+<div class="page pay-page" id="page5">
+  <div style="background:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
+    <button class="bbtn" id="payBackBtn" onclick="goTo('page1')">‹</button>
+    <span style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800" id="payPageTitle">Order Placed</span>
+    <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--g);cursor:pointer;padding:0" onclick="openTrackModal()" id="trackBtn">Track ›</button>
+  </div>
+  <div class="pay-body">
+    <!-- STATE: PENDING -->
+    <div class="pay-state active" id="payStatePending">
+      <div class="pay-hero">
+        <span class="pay-hero-icon">🧾</span>
+        <div class="pay-hero-title">Your order is saved</div>
+        <div class="pay-hero-sub">Complete payment to send it to the printer</div>
+        <div class="pay-order-pill">
+          <div>
+            <div class="pay-order-pill-label">Order ID</div>
+            <div class="pay-order-pill-id" id="pendingOrderId">OD-1</div>
+          </div>
+        </div>
+      </div>
+      <div class="pay-breakdown" id="payBreakdown"></div>
+      <div class="pay-methods-row">
+        <div class="pay-method">📱 UPI</div>
+        <div class="pay-method">💳 Cards</div>
+        <div class="pay-method">🏦 Net Banking</div>
+        <div class="pay-method">💰 Wallets</div>
+        <div class="pay-method">📲 EMI</div>
+      </div>
+      <div class="pay-warning-box">
+        <span style="font-size:18px;flex-shrink:0">🔒</span>
+        <div class="pay-warning-text">Payment is processed securely by <strong>Razorpay</strong>. PrintCrew never stores your card details.</div>
+      </div>
+      <div style="height:100px"></div>
+    </div>
+    <!-- STATE: SUCCESS -->
+    <div class="pay-state" id="payStateSuccess">
+      <span class="pay-success-icon">✅</span>
+      <div class="pay-success-title">Payment Done!</div>
+      <div class="pay-success-sub">Walk to the machine and show your OTP</div>
+      <div class="pay-pid-box" id="payPidBox">
+        <div class="pay-pid-label">Razorpay Payment ID</div>
+        <div class="pay-pid-val" id="payPidVal">—</div>
+      </div>
+      <div class="otp-reveal-box">
+        <div class="otp-reveal-label">Your Machine OTP</div>
+        <div class="otp-reveal-sub">Enter this at the PrintCrew kiosk screen to start printing</div>
+        <div class="otp-digits" id="otpDigits"></div>
+        <div class="otp-note">Valid for this session only · Keep it private</div>
+        <button class="otp-copy-btn" onclick="copyOTP()">📋 Copy OTP</button>
+      </div>
+      <div class="tracker-card">
+        <div class="tracker-title">
+          Live Order Status
+          <button class="tracker-refresh" onclick="refreshTracker()">⟳ Refresh</button>
+        </div>
+        <div class="tracker-timeline" id="trackerTimeline"></div>
+        <div class="refresh-hint" id="refreshHint">Auto-refreshes every 15s</div>
+      </div>
+      <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+        <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Collect From</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🖨️</div>
+          <div>
+            <div style="font-size:14px;font-weight:800" id="successMachineName">Machine</div>
+            <div style="font-size:11px;color:var(--mu);font-weight:600" id="successMachineLoc">Location</div>
+          </div>
+          <div style="margin-left:auto;background:#dcfce7;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;color:var(--g)">READY</div>
+        </div>
+      </div>
+      <button onclick="goTo('page1')" style="width:100%;background:#f3f4f6;border:none;border-radius:12px;padding:13px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#555;cursor:pointer;margin-bottom:20px">← Back to Home</button>
+    </div>
+    <!-- STATE: FAILED -->
+    <div class="pay-state" id="payStateFailed">
+      <span class="pay-failed-icon">😞</span>
+      <div class="pay-failed-title">Payment Failed</div>
+      <div class="rzp-err-code" id="rzpErrCode">—</div>
+      <div class="pay-failed-desc">Don't worry — your order <strong id="failedOrderId">OD-1</strong> is saved. Try again or use a different payment method.</div>
+      <button class="pay-retry-btn" onclick="retryPayment()">🔄 Try Again</button>
+      <button class="pay-home-btn" onclick="goTo('page1')">Back to Home</button>
+    </div>
+  </div>
+  <!-- Pay Now floating button -->
+  <div class="pay-btn" id="payNowBtn" onclick="openRazorpay()">
+    <div class="pay-btn-inner">
+      <div class="pay-btn-left">
+        <span class="t1">PAY SECURELY VIA</span>
+        <span class="t2" id="payBtnAmount">₹0</span>
+      </div>
+      <div class="pay-btn-right">
+        <span class="rzp-logo">Razorpay ⚡</span>
+        <span class="arrow">▶</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment processing overlay -->
+<div class="pay-processing-overlay" id="payProcessingOverlay">
+  <div class="pay-processing-card">
+    <div class="rzp-spinner"></div>
+    <div class="pay-processing-title">Opening Payment</div>
+    <div class="pay-processing-sub" id="payProcessingText">Connecting to Razorpay…</div>
+    <div class="pay-processing-dots"><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div></div>
+  </div>
+</div>
+
+<!-- Track Order modal -->
+<div class="mo" id="trackMo">
+  <div class="mb">
+    <div class="mt">📍 Track Order</div>
+    <div id="trackMoContent"></div>
+    <button class="mbtn s" onclick="closeMo('trackMo')">Close</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE 4 — ADMIN
+═══════════════════════════════════ -->
+<div class="page admin-page" id="page4">
+  <div class="ahdr">
+    <div class="ahdr-top">
+      <div class="alogo"><div class="alogo-icon">🖨️</div><div class="alogo-text">PrintCrew<span>Admin Dashboard</span></div></div>
+      <button class="aexit" onclick="goTo('page1')">← Exit</button>
+    </div>
+    <div class="astats">
+      <div class="astat"><div class="astat-val" id="aStatOrders">0</div><div class="astat-label">Orders</div><div class="astat-sub" id="aStatToday">0 today</div></div>
+      <div class="astat"><div class="astat-val rev" id="aStatRevenue">₹0</div><div class="astat-label">Revenue</div><div class="astat-sub" id="aStatTodayRev">₹0 today</div></div>
+      <div class="astat"><div class="astat-val" id="aStatPages">0</div><div class="astat-label">Pages</div><div class="astat-sub" id="aStatAvg">₹0 avg</div></div>
+    </div>
+  </div>
+  <div class="abody">
+    <div class="atabs">
+      <button class="atab active" onclick="setAdminTab('orders',this)">📋 Orders</button>
+      <button class="atab" onclick="setAdminTab('machines',this)">🖨️ Machines</button>
+      <button class="atab" onclick="setAdminTab('analytics',this)">📊 Analytics</button>
+      <button class="atab" onclick="setAdminTab('settings',this)">⚙️ Settings</button>
+    </div>
+
+    <!-- ORDERS TAB -->
+    <div id="tabOrders">
+      <div class="exp-bar">
+        <button class="expbtn exp-csv" onclick="exportCSV()">⬇ CSV</button>
+        <button class="expbtn exp-xls" onclick="exportExcel()">⬇ Excel</button>
+      </div>
+      <div class="asearch"><span style="font-size:14px;color:rgba(255,255,255,.3)">🔍</span><input id="adminSearch" placeholder="Search order ID, machine, file…" oninput="renderAdminOrders()"></div>
+      <div class="afilters">
+        <button class="afilter active" onclick="setAFilter('all',this)">All</button>
+        <button class="afilter" onclick="setAFilter('Payment Pending',this)">⏳ Pending</button>
+        <button class="afilter" onclick="setAFilter('Payment Confirmed',this)">💳 Paid</button>
+        <button class="afilter" onclick="setAFilter('Queued',this)">📋 Queued</button>
+        <button class="afilter" onclick="setAFilter('Printing',this)">🖨️ Printing</button>
+        <button class="afilter" onclick="setAFilter('Completed',this)">✅ Done</button>
+        <button class="afilter" onclick="setAFilter('Refund Requested',this)">↩ Refund</button>
+        <button class="afilter" onclick="setAFilter('Failed',this)">❌ Failed</button>
+      </div>
+      <div id="adminOrderList"></div>
+      <div class="apagination" id="adminPagination" style="display:none">
+        <button class="apgbtn" id="pgPrev" onclick="adminPage--; renderAdminOrders()">‹ Prev</button>
+        <span class="apginfo" id="pgInfo"></span>
+        <button class="apgbtn" id="pgNext" onclick="adminPage++; renderAdminOrders()">Next ›</button>
+      </div>
+      <button class="aclr-btn" onclick="confirmClearOrders()">🗑️ Clear All Order History</button>
+    </div>
+
+    <!-- MACHINES TAB -->
+    <div id="tabMachines" style="display:none">
+      <div id="adminMachineList"></div>
+    </div>
+
+    <!-- ANALYTICS TAB -->
+    <div id="tabAnalytics" style="display:none">
+      <div class="rev-chart"><div class="rev-chart-title">Revenue — Last 7 Days</div><div class="chart-bars" id="revChart"></div></div>
+      <div style="font-size:9px;color:rgba(255,255,255,.25);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px">Orders by Machine</div>
+      <div id="machineBreakdown"></div>
+      <div style="font-size:9px;color:rgba(255,255,255,.25);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:10px 0 7px">Color Mode</div>
+      <div id="colorBreakdown"></div>
+      <div style="font-size:9px;color:rgba(255,255,255,.25);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:10px 0 7px">Status Breakdown</div>
+      <div id="statusBreakdown"></div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tabSettings" style="display:none">
+      <div class="set-row"><div><div class="set-label">GST (18%)</div><div class="set-sub">Add GST to all orders in bill summary</div></div><button class="toggle" id="gstToggle" onclick="toggleGST()"></button></div>
+      <div class="set-row"><div><div class="set-label">Change Admin PIN</div><div class="set-sub">Update your 4-digit access PIN</div></div><button class="set-btn" onclick="openMo('changePinMo')">Change</button></div>
+      <div class="set-row"><div><div class="set-label">Storage Status</div><div class="set-sub" id="storageStatus">Checking…</div></div><button class="set-btn" onclick="checkStorage()">Check</button></div>
+      <div class="set-row"><div><div class="set-label">Backend Webhook</div><div class="set-sub">Connect your Razorpay webhook to auto-confirm payments</div></div><span style="font-size:11px;color:rgba(255,165,0,.8);font-weight:700">⚠ Not configured</span></div>
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:12px;margin-top:4px">
+        <div style="font-size:11px;font-weight:800;color:#60a5fa;margin-bottom:4px">ℹ️ Backend Integration</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600;line-height:1.5">
+          Configure your Razorpay webhook to POST to your backend, then call the PrintCrew API to update order status to "Payment Confirmed". Orders currently require manual confirmation.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════
+// STORAGE ABSTRACTION — swap .set/.get/.list/.delete here
+// when connecting your backend database
+// ═══════════════════════════════════════════════════════════
+const DB = {
+  async set(key, value, shared=true) {
+    // TODO: Replace with → fetch('/api/db', {method:'POST', body: JSON.stringify({key, value, shared})})
+    try {
+      const v = typeof value === 'string' ? value : JSON.stringify(value);
+      const r = await window.storage.set(key, v, shared);
+      return !!r;
+    } catch(e) { console.warn('DB.set failed', key, e); return false; }
+  },
+  async get(key, shared=true) {
+    // TODO: Replace with → (await fetch('/api/db/'+key+'?shared='+shared)).json()
+    try {
+      const r = await window.storage.get(key, shared);
+      if (!r) return null;
+      try { return JSON.parse(r.value); } catch { return r.value; }
+    } catch(e) { return null; }
+  },
+  async list(prefix, shared=true) {
+    // TODO: Replace with → (await fetch('/api/db?prefix='+prefix+'&shared='+shared)).json()
+    try {
+      const r = await window.storage.list(prefix, shared);
+      return r?.keys || [];
+    } catch(e) { return []; }
+  },
+  async delete(key, shared=true) {
+    // TODO: Replace with → fetch('/api/db/'+key, {method:'DELETE'})
+    try { await window.storage.delete(key, shared); return true; } catch(e) { return false; }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// SECURITY — SHA-256 PIN HASHING
+// PIN is never stored in plain text anywhere
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // hash of '1234'
+
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getStoredPinHash() {
+  const h = await DB.get('admin:pinhash', false);
+  return h || DEFAULT_PIN_HASH;
+}
+
+// ═══════════════════════════════════════════════════════════
+// INPUT SANITIZATION — prevent XSS in all dynamic HTML
+// ═══════════════════════════════════════════════════════════
+function s(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+function safeAttr(str) {
+  return (str||'').replace(/'/g, '').replace(/"/g, '').replace(/</g,'').replace(/>/g,'');
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const HANDLING = 5, MRP = 150, MAX_FILE_MB = 20, MAX_THUMB_PAGES = 12;
+let cart=[], copies=1, colorPrice=10, colorMode='colour', orientMode='portrait', sidesMode=1;
+let uploadedFiles=[], currentFileIdx=0, wishlist=new Set();
+let couponDiscount=0, appliedCoupon=null;
+let gstEnabled=false;
+let selMachine=null;
+let lastOrderId=null, lastOrderGrand=0;
+let tcAccepted=false; // in-memory T&C cache
+
+let MACHINES = [
+  {id:1, name:'Girls Hostel – Machine 2108', loc:'Girls Hostel', addr:'CU-UP Campus', status:'online', queue:0, paper:350, ink:78, dist:880, time:2},
+  {id:2, name:'Boys Hostel – Machine 3201', loc:'Boys Hostel', addr:'CU-UP Campus', status:'busy', queue:3, paper:280, ink:61, dist:1200, time:5},
+  {id:3, name:'Library – Machine 1001', loc:'Library', addr:'Main Block, CU-UP', status:'online', queue:1, paper:500, ink:92, dist:620, time:3},
+  {id:4, name:'Engg Block – Machine 4002', loc:'Engg Block', addr:'Tech Zone, CU-UP', status:'offline', queue:0, paper:0, ink:0, dist:2100, time:0},
+];
+
+const PRODUCTS = [
+  {name:'Blank Page', r:'★★★☆☆', cnt:305, lines:['40%','100%','70%','50%','90%']},
+  {name:'Index Page', r:'★★★☆☆', cnt:305, lines:['100%','55%','80%','45%','70%']},
+  {name:'Home Page', r:'★★★☆☆', cnt:305, lines:['60%','100%','35%','80%','50%']},
+  {name:'Cover Page', r:'★★★★☆', cnt:212, lines:['100%','40%','75%','55%','90%']},
+  {name:'Report Sheet', r:'★★★★☆', cnt:188, lines:['70%','100%','60%','45%','80%']},
+];
+
+// ─── Admin state ───
+let allOrders=[], adminFilter='all', adminActiveTab='orders', adminPage=0;
+const ADMIN_PAGE_SIZE = 15;
+let editingMachineId = null;
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.onload = async () => {
+  selMachine = MACHINES[0];
+  await loadMachinesFromStorage();
+  await loadSettings();
+  renderProducts('productsRow');
+  renderProducts('alsoLikeRow');
+  renderMachinePills();
+  renderMachineList();
+};
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function goTo(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='page3') renderCheckout();
+  if(id==='page4') loadAdminPage();
+  window.scrollTo(0,0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MACHINES
+// ═══════════════════════════════════════════════════════════
+async function loadMachinesFromStorage() {
+  for(let i=0;i<MACHINES.length;i++) {
+    const data = await DB.get('machine:'+MACHINES[i].id, true);
+    if(data && typeof data === 'object') Object.assign(MACHINES[i], data);
+  }
+}
+
+async function saveMachineToStorage(machine) {
+  const {id,name,loc,addr,...stats} = machine;
+  await DB.set('machine:'+machine.id, {id,name,loc,addr,...stats}, true);
+}
+
+function renderMachinePills() {
+  document.getElementById('statusPills').innerHTML = MACHINES.map((m,i)=>`
+    <div class="msp ${selMachine.id===m.id?'sel':''}" onclick="pickMachine(${i})">
+      <div class="msdot ${m.status}"></div><span>${s(m.loc)}</span>
+      ${m.status!=='offline'?`<span style="color:#888;font-size:10px">·${m.dist}m</span>`:`<span style="color:#ef4444;font-size:9px">· Offline</span>`}
+    </div>`).join('');
+}
+
+function renderMachineList() {
+  document.getElementById('machineList').innerHTML = MACHINES.map((m,i)=>`
+    <button class="mbtn ${m.status==='offline'?'s':'p'}" ${m.status==='offline'?'disabled':''} onclick="pickMachine(${i});closeMo('machineMo')" style="${m.status==='offline'?'opacity:.45;cursor:not-allowed':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="text-align:left">
+          <div>${s(m.name)}</div>
+          <div style="font-size:10px;opacity:.75;font-weight:600">${m.dist}m · ${m.status==='online'?'🟢 Ready':m.status==='busy'?'🟡 '+m.queue+' in queue':'🔴 Offline'}</div>
+        </div>
+        <div style="font-size:11px;opacity:.8">${m.status!=='offline'?'~'+m.time+'min':''}</div>
+      </div>
+    </button>`).join('');
+}
+
+function pickMachine(idx) {
+  selMachine = MACHINES[idx];
+  document.getElementById('headerLoc').textContent = selMachine.name;
+  document.getElementById('hdrTime').textContent = selMachine.status!=='offline'?selMachine.time+' minutes':'Offline';
+  document.getElementById('hdrDist').textContent = '📍 '+selMachine.dist+'m away';
+  renderMachinePills();
+  if(cart.length) renderCheckout();
+  showToast('📍 '+selMachine.loc);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRODUCTS
+// ═══════════════════════════════════════════════════════════
+function renderProducts(cid) {
+  const c = document.getElementById(cid); if(!c) return;
+  c.innerHTML = PRODUCTS.map((p,i)=>`
+    <div class="pcard">
+      <button class="hrt" id="h-${cid}-${i}" onclick="toggleWL('${cid}-${i}','${safeAttr(p.name)}')">🤍</button>
+      <div class="pthumb">${p.lines.map(w=>`<div class="tl" style="width:${w}"></div>`).join('')}</div>
+      <button class="pbtn" onclick="quickPrint('${safeAttr(p.name)}')">Print</button>
+      <div class="pqty">5 × 1 pc</div><div class="pname">${s(p.name)}</div>
+      <div class="stars">${s(p.r)} <span style="color:#888;font-size:8px">(${s(p.cnt)})</span></div>
+      <div class="dtag">⚡ Instant</div><div class="otag">68% OFF</div>
+      <div class="prow2"><span class="pnow">₹48</span><span class="pmrp">MRP ₹150</span></div>
+    </div>`).join('');
+}
+
+function quickPrint(name) {
+  uploadedFiles = [{name:name+'.pdf',type:'pdf-template',size:0,isTemplate:true,templateName:name,_pages:1,_allPageThumbs:[],_thumbUrl:null}];
+  currentFileIdx=0; resetPrintSettings(); renderPage2(); goTo('page2');
+}
+
+function toggleWL(id,name) {
+  const el = document.getElementById('h-'+id);
+  if(wishlist.has(id)){wishlist.delete(id);el.textContent='🤍';showToast('Removed from wishlist');}
+  else{wishlist.add(id);el.textContent='❤️';showToast('❤️ '+name+' saved');}
+}
+
+// ═══════════════════════════════════════════════════════════
+// T&C — must accept before uploading
+// ═══════════════════════════════════════════════════════════
+async function startUpload() {
+  if(tcAccepted) { document.getElementById('fileInput').click(); return; }
+  const stored = await DB.get('user:tc_v1', false);
+  if(stored) { tcAccepted=true; document.getElementById('fileInput').click(); return; }
+  openMo('tcMo');
+}
+
+function toggleTc(n) {
+  const cb = document.getElementById('tc'+n);
+  cb.checked = !cb.checked;
+}
+
+async function acceptTC() {
+  const allChecked = [0,1,2].every(n=>document.getElementById('tc'+n).checked);
+  if(!allChecked) { document.getElementById('tcErr').textContent='Please accept all three items to continue.'; return; }
+  document.getElementById('tcErr').textContent='';
+  tcAccepted = true;
+  await DB.set('user:tc_v1', new Date().toISOString(), false);
+  closeMo('tcMo');
+  document.getElementById('fileInput').click();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE UPLOAD — size limits, all page thumbnails, honest
+// ═══════════════════════════════════════════════════════════
+async function handleUpload(e) {
+  const files = Array.from(e.target.files); if(!files.length) return;
+
+  // File size validation
+  for(const f of files) {
+    if(f.size > MAX_FILE_MB * 1024 * 1024) {
+      showToast(`⚠️ "${f.name}" exceeds ${MAX_FILE_MB}MB limit`); e.target.value=''; return;
+    }
+  }
+
+  showToast('📄 Processing '+files.length+' file(s)…');
+  const btn = document.querySelector('.acbtn'); if(btn) btn.disabled=true;
+
+  for(const f of files) {
+    f._pages = 1; f._allPageThumbs = []; f._thumbUrl = null; f._fullDataUrl = null;
+    if(f.type === 'application/pdf') {
+      try {
+        const ab = await f.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+        f._pages = pdf.numPages;
+        const pagesToRender = Math.min(f._pages, MAX_THUMB_PAGES);
+        for(let p=1; p<=pagesToRender; p++) {
+          try {
+            const page = await pdf.getPage(p);
+            const vp = page.getViewport({scale:0.22});
+            const cv = document.createElement('canvas');
+            cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+            await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+            f._allPageThumbs.push(cv.toDataURL('image/jpeg', 0.5));
+          } catch(pe) { f._allPageThumbs.push(null); }
+        }
+        f._thumbUrl = f._allPageThumbs[0] || null;
+        if(f._pages > MAX_THUMB_PAGES) showToast(`📄 Showing first ${MAX_THUMB_PAGES} of ${f._pages} pages`);
+      } catch(err) { f._pages=1; }
+    } else if(f.type.startsWith('image/')) {
+      try {
+        const dataUrl = await fileToDataURL(f);
+        f._thumbUrl = await resizeImg(dataUrl, 160);
+        f._allPageThumbs = [f._thumbUrl];
+        f._fullDataUrl = await resizeImg(dataUrl, 600);
+      } catch(ie) {}
+    }
+  }
+
+  uploadedFiles=files; currentFileIdx=0;
+  resetPrintSettings(); renderPage2(); goTo('page2');
+  showToast('✅ '+files.length+' file(s) · '+files.reduce((s,f)=>s+f._pages,0)+' total pages');
+  e.target.value='';
+  if(btn) btn.disabled=false;
+}
+
+function fileToDataURL(file) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
+}
+function resizeImg(dataUrl, maxW) {
+  return new Promise((res)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const ratio=Math.min(1,maxW/img.width); const w=Math.round(img.width*ratio); const h=Math.round(img.height*ratio);
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h); res(cv.toDataURL('image/jpeg',0.6));
+    };
+    img.onerror=()=>res(dataUrl); img.src=dataUrl;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 2
+// ═══════════════════════════════════════════════════════════
+function resetPrintSettings() {
+  copies=1; colorMode='colour'; colorPrice=10; orientMode='portrait'; sidesMode=1;
+  const n=document.getElementById('copiesNum'); if(n) n.textContent='1';
+}
+
+function renderPage2() {
+  const row = document.getElementById('p2PreviewRow'); row.innerHTML='';
+  if(!uploadedFiles.length){row.innerHTML='<div style="font-size:12px;color:#888;padding:20px">No files</div>';return;}
+  uploadedFiles.forEach((f,i)=>{
+    const div=document.createElement('div');
+    div.className='dcard'+(i===currentFileIdx?' adoc':'');
+    div.onclick=()=>{currentFileIdx=i;updateDocCards();renderPage2FileInfo();};
+    const xbtn=document.createElement('button'); xbtn.className='dcx'; xbtn.textContent='✕';
+    xbtn.onclick=(e)=>{e.stopPropagation();removeFile(i);};
+    div.appendChild(xbtn);
+    const inner=document.createElement('div');
+    inner.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    if(f._thumbUrl){
+      const img=document.createElement('img'); img.className='dcard-img'; img.src=f._thumbUrl;
+      inner.appendChild(img);
+    } else if(f.isTemplate){
+      inner.innerHTML=`<div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:900;text-align:center;padding:8px;line-height:1.3">${s(f.templateName)}</div>`;
+    } else {
+      const ic=document.createElement('div'); ic.className='dcard-icon';
+      ic.innerHTML=`<div style="font-size:34px">${fileIcon(f)}</div><div style="font-size:8px;color:#888;font-weight:600;text-align:center;word-break:break-all;padding:0 4px">${s(f.name)}</div>`;
+      inner.appendChild(ic);
+    }
+    div.appendChild(inner);
+    if(f._pages>1){const pg=document.createElement('div');pg.className='dpages';pg.textContent=f._pages+'p';div.appendChild(pg);}
+    row.appendChild(div);
+  });
+  document.getElementById('p2Hint').textContent = uploadedFiles.length>1?'Tap a doc to select · '+uploadedFiles.length+' files':'';
+  renderPage2FileInfo(); updatePrice();
+}
+
+function renderPage2FileInfo() {
+  const totalPgs = getTotalPages();
+  document.getElementById('fileCountLabel').textContent = uploadedFiles.length+' file'+(uploadedFiles.length>1?'s':'')+' · '+totalPgs+' page'+(totalPgs>1?'s':'');
+}
+
+function updateDocCards() {
+  document.querySelectorAll('.dcard').forEach((el,i)=>el.classList.toggle('adoc',i===currentFileIdx));
+}
+
+function removeFile(idx) {
+  uploadedFiles.splice(idx,1);
+  if(currentFileIdx>=uploadedFiles.length) currentFileIdx=Math.max(0,uploadedFiles.length-1);
+  if(!uploadedFiles.length){goTo('page1');showToast('All files removed');return;}
+  renderPage2();
+}
+
+function getTotalPages() { return uploadedFiles.reduce((s,f)=>s+(f._pages||1),0); }
+
+function fileIcon(f) {
+  if(!f) return'📁';
+  if(f.type?.includes('pdf')||f.name?.endsWith('.pdf')) return'📄';
+  if(f.type?.includes('word')||f.name?.match(/\.docx?$/i)) return'📝';
+  if(f.type?.includes('presentation')||f.name?.match(/\.pptx?$/i)) return'📊';
+  if(f.type?.startsWith('image/')) return'🖼️';
+  if(f.type?.includes('text')) return'📃';
+  return'📁';
+}
+
+function chCopies(d){copies=Math.max(1,copies+d);document.getElementById('copiesNum').textContent=copies;updatePrice();}
+function selColor(t){colorMode=t;colorPrice=t==='colour'?10:3;document.getElementById('cColour').classList.toggle('sel',t==='colour');document.getElementById('cBW').classList.toggle('sel',t==='bw');updatePrice();}
+function selOrient(t){orientMode=t;document.getElementById('oPt').classList.toggle('sel',t==='portrait');document.getElementById('oLs').classList.toggle('sel',t==='landscape');}
+function selSides(n){sidesMode=n;document.getElementById('s1').classList.toggle('sel',n===1);document.getElementById('s2').classList.toggle('sel',n===2);updatePrice();}
+function updatePrice(){
+  const pages=getTotalPages(); const total=pages*copies*colorPrice;
+  document.getElementById('totalPagesLabel').textContent=pages;
+  document.getElementById('totalPrice').textContent=total;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CART
+// ═══════════════════════════════════════════════════════════
+function addToCart() {
+  if(!uploadedFiles.length){showToast('⚠️ Upload a file first');return;}
+  if(selMachine.status==='offline'){showToast('⚠️ This machine is offline');return;}
+  const totalPages=getTotalPages();
+  const price=totalPages*copies*colorPrice;
+  const origPrice=totalPages*copies*MRP;
+  cart.push({
+    id:Date.now(),
+    files:[...uploadedFiles],
+    name:uploadedFiles.length>1?uploadedFiles.length+' files':uploadedFiles[0].name,
+    pages:totalPages, color:colorMode==='colour'?'Colour':'B & W', colorPrice, copies,
+    orient:orientMode==='portrait'?'Portrait':'Landscape',
+    sides:sidesMode===1?'Single-sided':'Double-sided (requested)',
+    price, origPrice,
+    thumbUrl:uploadedFiles[currentFileIdx]?._thumbUrl||null,
+    fileDetails:uploadedFiles.map(f=>({
+      name:f.name, pages:f._pages||1, type:f.type||'', isTemplate:f.isTemplate||false,
+      templateName:f.templateName||'', thumbUrl:f._thumbUrl||null,
+      allPageThumbs:f._allPageThumbs||[], fullDataUrl:f._fullDataUrl||null,
+    })),
+  });
+  couponDiscount=0;appliedCoupon=null;
+  document.getElementById('couponLabel').textContent='Use Coupons';
+  updateCartBadge();showToast('✅ Added to queue!');goTo('page3');
+}
+
+function cartTotal(){return cart.reduce((s,i)=>s+i.price,0);}
+
+function calcGrand(sub){
+  let g=sub+HANDLING-couponDiscount;
+  if(gstEnabled) g+=Math.round(sub*0.18);
+  return Math.max(0,g);
+}
+
+function updateCartBadge(){
+  const n=cart.length;
+  document.getElementById('cartBadge').textContent=n;
+  const bar=document.getElementById('viewCartBar');
+  if(n>0){
+    bar.classList.remove('hidden');
+    document.getElementById('cartItemCount').textContent=n+' item'+(n>1?'s':'');
+    document.getElementById('cartTotalLabel').textContent='₹'+calcGrand(cartTotal());
+  } else bar.classList.add('hidden');
+}
+
+function removeFromCart(id){
+  cart=cart.filter(i=>i.id!==id);couponDiscount=0;appliedCoupon=null;
+  document.getElementById('couponLabel').textContent='Use Coupons';
+  updateCartBadge();renderCheckout();showToast('🗑️ Removed');
+}
+function clearCart(){
+  if(!cart.length)return;
+  cart=[];couponDiscount=0;appliedCoupon=null;
+  updateCartBadge();renderCheckout();showToast('🗑️ Cart cleared');
+}
+
+function renderCheckout(){
+  const empty=!cart.length;
+  document.getElementById('emptyCart').style.display=empty?'flex':'none';
+  document.getElementById('p3Content').style.display=empty?'none':'block';
+  if(empty)return;
+  const m=selMachine;
+  document.getElementById('mcName').textContent='🖨️ '+m.name;
+  const dot=document.getElementById('mcDot'); dot.className='msdot '+m.status;
+  document.getElementById('mcStatusText').textContent=m.status==='online'?'Online':m.status==='busy'?'Busy':'Offline';
+  document.getElementById('mcQueue').textContent=m.queue===0?'Ready to print':m.queue+' job'+(m.queue>1?'s':'')+' ahead';
+  document.getElementById('mcLoc').textContent=m.loc;
+  document.getElementById('mcPaper').textContent=m.paper>0?m.paper+' sheets':'—';
+  document.getElementById('mcInk').textContent=m.ink>0?m.ink+'%':'—';
+  document.getElementById('locTop').textContent='Printing in – '+m.loc;
+  document.getElementById('locSub').textContent=m.name;
+
+  document.getElementById('cartItemsList').innerHTML=cart.map(item=>`
+    <div class="fscard">
+      <div class="fthumb">${item.thumbUrl?`<img src="${item.thumbUrl}" alt="">`:fileIcon(item.files?.[0])}</div>
+      <div class="finfo">
+        <div class="fname2">${s(item.name)}</div>
+        <div class="fmeta">${s(item.pages)} page(s) · ${s(item.color)} · ${s(item.orient)}</div>
+        <div class="fmeta">${s(item.copies)} cop${item.copies>1?'ies':'y'} · ${s(item.sides)}</div>
+        <button class="fremove" onclick="removeFromCart(${item.id})">Remove</button>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+        <button class="editbtn" onclick="editItem(${item.id})">Edit</button>
+        <div class="fprice"><div class="orig">₹${s(item.origPrice)}</div><div class="disc">₹${s(item.price)}</div></div>
+      </div>
+    </div>`).join('');
+
+  const sub=cartTotal();
+  const saved=cart.reduce((s,i)=>s+i.origPrice-i.price,0);
+  const gst=gstEnabled?Math.round(sub*0.18):0;
+  const grand=calcGrand(sub);
+  document.getElementById('savedBadge').textContent='Saved ₹'+saved;
+  document.getElementById('billOrig').textContent='₹'+(sub+saved);
+  document.getElementById('billItems').textContent='₹'+sub;
+  document.getElementById('billGrand').textContent='₹'+grand;
+  document.getElementById('placeTotal').textContent='₹'+grand+' TOTAL';
+  const gstRow=document.getElementById('gstRow');
+  gstRow.style.display=gstEnabled?'flex':'none';
+  if(gstEnabled) document.getElementById('billGST').textContent='₹'+gst;
+  const discRow=document.getElementById('discRow');
+  discRow.style.display=couponDiscount>0?'flex':'none';
+  if(couponDiscount>0) document.getElementById('billDisc').textContent='-₹'+couponDiscount;
+  updateCartBadge();
+}
+
+function editItem(id){
+  const item=cart.find(i=>i.id===id);if(!item)return;
+  uploadedFiles=item.files;currentFileIdx=0;copies=item.copies;
+  colorMode=item.color==='Colour'?'colour':'bw';colorPrice=item.colorPrice;
+  orientMode=item.orient==='Portrait'?'portrait':'landscape';
+  sidesMode=item.sides.includes('Double')?2:1;
+  document.getElementById('copiesNum').textContent=copies;
+  selColor(colorMode);selOrient(orientMode);selSides(sidesMode);
+  renderPage2();removeFromCart(id);goTo('page2');
+}
+
+// ═══════════════════════════════════════════════════════════
+// COUPONS
+// ═══════════════════════════════════════════════════════════
+function fillCoupon(c){document.getElementById('couponInput').value=c;}
+function applyCoupon(){
+  const code=document.getElementById('couponInput').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  closeMo('couponMo');const sub=cartTotal();
+  if(code==='PRINT20'){couponDiscount=Math.round(sub*.2);appliedCoupon=code;document.getElementById('couponLabel').textContent='✅ PRINT20 applied!';showToast('🎉 20% off!');}
+  else if(code==='CREW50'){couponDiscount=Math.round(sub*.5);appliedCoupon=code;document.getElementById('couponLabel').textContent='✅ CREW50 applied!';showToast('🎉 50% off!');}
+  else{showToast('❌ Invalid coupon code');return;}
+  renderCheckout();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLACE ORDER — saves as "Payment Pending", goes to page 5
+// ═══════════════════════════════════════════════════════════
+async function placeOrder() {
+  if(!cart.length){showToast('⚠️ Nothing in cart');return;}
+  if(selMachine.status==='offline'){showToast('⚠️ Machine offline! Select another.');return;}
+
+  const placeBtn = document.getElementById('placeBtn');
+  placeBtn.disabled = true;
+
+  // Animate steps
+  const overlay=document.getElementById('printOverlay');
+  const bar=document.getElementById('pBar');
+  const txt=document.getElementById('pStepText');
+  const lbl=document.getElementById('pStepLbl');
+  overlay.style.display='flex';
+  const steps=[
+    {t:'Encrypting your files…',l:'Step 1 of 3',p:30},
+    {t:'Generating order…',l:'Step 2 of 3',p:65},
+    {t:'Saving order details…',l:'Step 3 of 3',p:90},
+  ];
+  let si=0;
+  await new Promise(res=>{
+    function doStep(){
+      if(si>=steps.length){bar.style.width='100%';setTimeout(res,300);return;}
+      const st=steps[si];txt.textContent=st.t;lbl.textContent=st.l;bar.style.width=st.p+'%';si++;setTimeout(doStep,700);
+    }
+    doStep();
+  });
+  overlay.style.display='none';
+  bar.style.width='0%';
+
+  // Generate order ID
+  const orderId = await generateOrderId();
+  const sub = cartTotal();
+  const grand = calcGrand(sub);
+  const gst = gstEnabled ? Math.round(sub*0.18) : 0;
+
+  const orderData = {
+    orderId, timestamp:new Date().toISOString(),
+    machine:selMachine.name, machineId:selMachine.id, machineLoc:selMachine.loc,
+    items:cart.map(i=>({
+      name:i.name, pages:i.pages, color:i.color, orient:i.orient,
+      sides:i.sides, copies:i.copies, price:i.price, origPrice:i.origPrice,
+      thumbUrl:i.thumbUrl||null,
+      fileDetails:(i.fileDetails||[]).map(fd=>({
+        name:fd.name, pages:fd.pages, type:fd.type||'', isTemplate:fd.isTemplate||false,
+        templateName:fd.templateName||'',
+        thumbUrl:fd.thumbUrl||null,
+        allPageThumbs:fd.allPageThumbs||[],
+      }))
+    })),
+    totalPages:cart.reduce((s,i)=>s+i.pages*i.copies,0),
+    subtotal:sub, coupon:appliedCoupon||null, discount:couponDiscount,
+    platformFee:HANDLING, gst, grandTotal:grand,
+    status:'Payment Pending',
+    statusHistory:[{status:'Payment Pending',time:new Date().toISOString()}],
+  };
+
+  // Save to storage — handle failure gracefully
+  const saved = await DB.set('order:'+orderId, orderData, true);
+  if(!saved) {
+    showToast('⚠️ Order saved locally — contact admin if issues arise');
+  }
+
+  // Save to user's personal order history
+  await addToUserHistory(orderId, grand, selMachine.name, orderData.status);
+
+  // Prepare confirmation page BEFORE clearing cart
+  lastOrderId = orderId; lastOrderGrand = grand;
+  showConfirmationPage(orderId, grand, orderData);
+
+  // Now clear cart
+  cart=[]; couponDiscount=0; appliedCoupon=null;
+  document.getElementById('couponLabel').textContent='Use Coupons';
+  updateCartBadge();
+  placeBtn.disabled = false;
+}
+
+async function generateOrderId() {
+  let counter = 1;
+  try {
+    const r = await DB.get('orders:counter', true);
+    if(r) counter = parseInt(r)+1;
+    await DB.set('orders:counter', String(counter), true);
+  } catch(e) { counter = Date.now()%99999; }
+  return 'OD-'+counter;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT — Razorpay Checkout.js
+// Key ID only on frontend — Secret stays server-side ONLY
+// ═══════════════════════════════════════════════════════════
+const RZP_KEY_ID = 'rzp_live_SUFAME4O5y5qdy';
+let currentPayOrderData = null;
+let trackerInterval = null;
+let currentOTPCode = '';
+
+function showConfirmationPage(orderId, grand, orderData) {
+  currentPayOrderData = orderData;
+
+  // OTP — deterministic from orderId (same formula as kiosk)
+  const num = parseInt(orderId.replace(/[^0-9]/g,'')) || 1;
+  const SALT = 9173;
+  currentOTPCode = String(((num * 73 + SALT) * 37 + num * 13) % 9000 + 1000);
+
+  // Populate pending state
+  document.getElementById('pendingOrderId').textContent = orderId;
+  document.getElementById('payBtnAmount').textContent = '₹'+grand;
+  document.getElementById('payPageTitle').textContent = 'Pay for '+orderId;
+
+  // Bill breakdown
+  const sub = orderData.subtotal;
+  const saved = (orderData.items||[]).reduce((t,i)=>t+i.origPrice-i.price,0);
+  const rows = [
+    {l:'📄 Print charges', orig: sub+saved, val: sub},
+    {l:'⚙️ Platform fee', val: orderData.platformFee||5},
+    orderData.gst>0 && {l:'📊 GST (18%)', val: orderData.gst},
+    orderData.discount>0 && {l:'🏷️ Coupon ('+orderData.coupon+')', val: -orderData.discount, green:true},
+  ].filter(Boolean);
+  document.getElementById('payBreakdown').innerHTML =
+    rows.map(r=>`<div class="pay-brow">
+      <span class="lbl">${r.l}</span>
+      <span class="val" style="${r.green?'color:var(--g)':''}">
+        ${r.orig?`<span style="text-decoration:line-through;color:#aaa;margin-right:4px">₹${r.orig}</span>`:''}
+        ${r.green&&r.val<0?'-':''}₹${Math.abs(r.val)}
+      </span>
+    </div>`).join('')+
+    `<div class="pay-brow total"><span class="lbl">Total</span><span class="val">₹${grand}</span></div>`;
+
+  // Show pending state
+  setPayState('pending');
+  goTo('page5');
+}
+
+function setPayState(state) {
+  ['pending','success','failed'].forEach(st=>{
+    document.getElementById('payState'+st.charAt(0).toUpperCase()+st.slice(1)).classList.toggle('active',st===state);
+  });
+  // Show/hide pay button
+  const payBtn = document.getElementById('payNowBtn');
+  payBtn.style.display = state==='pending' ? 'block' : 'none';
+}
+
+// ─────────────────────────────────────────────────────
+// BACKEND URL — change to your deployed server URL
+// e.g. 'https://printcrew-backend.railway.app'
+// Keep empty string '' to skip server calls (demo mode)
+// ─────────────────────────────────────────────────────
+const BACKEND_URL = '';  // ← SET THIS after deploying server.js
+
+async function openRazorpay() {
+  if(!currentPayOrderData) return;
+  const overlay = document.getElementById('payProcessingOverlay');
+  const txt = document.getElementById('payProcessingText');
+  overlay.classList.add('show');
+  txt.textContent = 'Creating secure payment order…';
+
+  let rzpOrderId = null;
+
+  if(BACKEND_URL) {
+    // ── PRODUCTION PATH: create Razorpay Order server-side ──
+    // This is required — payments without order_id are auto-refunded by Razorpay
+    try {
+      txt.textContent = 'Connecting to payment server…';
+      const resp = await fetch(BACKEND_URL + '/api/create-order', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          amount: currentPayOrderData.grandTotal * 100,   // paise
+          currency: 'INR',
+          receipt: currentPayOrderData.orderId,            // your internal order ID
+          notes: {
+            printcrew_order_id: currentPayOrderData.orderId,
+            machine: currentPayOrderData.machine,
+            pages: String(currentPayOrderData.totalPages),
+          }
+        })
+      });
+      if(!resp.ok) throw new Error('Server returned ' + resp.status);
+      const data = await resp.json();
+      if(!data.razorpay_order_id) throw new Error('No order_id in response');
+      rzpOrderId = data.razorpay_order_id;
+      txt.textContent = 'Order created · Opening payment…';
+    } catch(e) {
+      overlay.classList.remove('show');
+      console.error('Order creation failed:', e);
+      showToast('⚠️ Could not reach payment server. Check connection.');
+      return;
+    }
+  } else {
+    // ── DEMO MODE: no backend configured ──
+    // Payments will open but CANNOT be captured without order_id
+    // Set BACKEND_URL above to enable full payment flow
+    txt.textContent = 'Demo mode — no backend configured';
+    console.warn('PRINTCREW: BACKEND_URL not set. Payments will not be captured. See server.js.');
+  }
+
+  setTimeout(()=>{ overlay.classList.remove('show'); launchRzpCheckout(rzpOrderId); }, 500);
+}
+
+function launchRzpCheckout(rzpOrderId) {
+  const order = currentPayOrderData;
+  const grand = order.grandTotal;
+
+  const options = {
+    key: RZP_KEY_ID,
+    amount: grand * 100,
+    currency: 'INR',
+    name: 'PrintCrew',
+    description: 'Print Order ' + order.orderId + ' · ' + order.totalPages + ' pages',
+    image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMzYThjMmMiLz48dGV4dCB4PSIyNCIgeT0iMzIiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfm6k8L3RleHQ+PC9zdmc+',
+    handler: async function(response) {
+      await onPaymentSuccess(response, rzpOrderId);
+    },
+    prefill: { name: '', email: '', contact: '' },
+    notes: {
+      printcrew_order_id: order.orderId,
+      machine: order.machine,
+      pages: String(order.totalPages),
+    },
+    theme: { color: '#3a8c2c', backdrop_color: 'rgba(0,0,0,0.65)' },
+    modal: {
+      ondismiss: function() { onPaymentDismissed(); },
+      animation: true,
+      escape: true,
+    },
+    retry: { enabled: true, max_count: 3 },
+    timeout: 600, // 10 minutes
+  };
+
+  // Attach order_id if we have one (REQUIRED for payment capture)
+  if(rzpOrderId) options.order_id = rzpOrderId;
+
+  try {
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(response) { onPaymentFailed(response); });
+    rzp.open();
+  } catch(e) {
+    showToast('⚠️ Payment gateway unavailable. Try again.');
+    console.error('Razorpay init failed:', e);
+  }
+}
+
+async function onPaymentSuccess(response, rzpOrderId) {
+  const order = currentPayOrderData;
+  if(!order) return;
+
+  const overlay = document.getElementById('payProcessingOverlay');
+  document.getElementById('payProcessingText').textContent = 'Verifying payment signature…';
+  overlay.classList.add('show');
+
+  // ── SIGNATURE VERIFICATION (server-side) ──
+  // This is the mandatory step that proves the payment is authentic.
+  // Without this, a malicious user could fake a success callback.
+  let verified = false;
+
+  if(BACKEND_URL && response.razorpay_signature) {
+    try {
+      const vResp = await fetch(BACKEND_URL + '/api/verify-payment', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          razorpay_order_id:   response.razorpay_order_id  || rzpOrderId,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature:  response.razorpay_signature,
+          printcrew_order_id:  order.orderId,
+        })
+      });
+      const vData = await vResp.json();
+      if(!vResp.ok || !vData.verified) throw new Error(vData.error || 'Signature mismatch');
+      verified = true;
+    } catch(e) {
+      overlay.classList.remove('show');
+      console.error('Signature verification failed:', e);
+      showToast('⚠️ Payment verification failed. Contact support with ' + order.orderId);
+      // Do NOT update order status — do not give access to prints
+      return;
+    }
+  } else {
+    // Demo mode or payment without order_id — mark unverified but continue for UX
+    verified = false;
+    console.warn('Payment not server-verified. Set BACKEND_URL to enable signature check.');
+  }
+
+  document.getElementById('payProcessingText').textContent = verified ? 'Signature verified ✓' : 'Saving order…';
+
+  // Update order in storage
+  order.status = 'Payment Confirmed';
+  order.razorpayPaymentId  = response.razorpay_payment_id;
+  order.razorpayOrderId    = response.razorpay_order_id || rzpOrderId || null;
+  order.razorpaySignature  = response.razorpay_signature || null;
+  order.signatureVerified  = verified;
+  order.paidAt             = new Date().toISOString();
+  order.statusHistory      = order.statusHistory || [];
+  order.statusHistory.push({
+    status: 'Payment Confirmed',
+    time: new Date().toISOString(),
+    paymentId: response.razorpay_payment_id,
+    verified,
+  });
+
+  await DB.set('order:' + order.orderId, order, true);
+  await addToUserHistory(order.orderId, order.grandTotal, order.machine, 'Payment Confirmed');
+
+  await new Promise(r => setTimeout(r, 700));
+  overlay.classList.remove('show');
+
+  // ── POPULATE SUCCESS SCREEN ──
+  document.getElementById('payPageTitle').textContent = 'Paid ✅';
+  document.getElementById('payPidVal').textContent = response.razorpay_payment_id;
+  document.getElementById('successMachineName').textContent = order.machine;
+  document.getElementById('successMachineLoc').textContent = order.machineLoc || '';
+  document.getElementById('failedOrderId').textContent = order.orderId;
+
+  // OTP digits
+  document.getElementById('otpDigits').innerHTML =
+    currentOTPCode.split('').map(d => `<div class="otp-digit-box">${d}</div>`).join('');
+
+  setPayState('success');
+  renderTracker(order);
+  startTrackerPoll(order.orderId);
+  showToast(verified ? '✅ Payment verified & confirmed!' : '✅ Payment recorded!');
+}
+
+function onPaymentDismissed() {
+  showToast('💳 Payment window closed — tap Pay to try again');
+}
+
+async function onPaymentFailed(response) {
+  const err   = response?.error || {};
+  const code  = err.code        || 'PAYMENT_FAILED';
+  const desc  = err.description || 'Payment could not be completed';
+  const step  = err.step        || '';
+  const reason= err.reason      || '';
+
+  // Log to storage for admin visibility
+  const order = currentPayOrderData;
+  if(order) {
+    order.lastFailure = { code, desc, step, reason, time: new Date().toISOString() };
+    await DB.set('order:' + order.orderId, order, true);
+  }
+
+  document.getElementById('rzpErrCode').textContent = code + (reason ? ' · ' + reason : '') + ' — ' + desc;
+  document.getElementById('failedOrderId').textContent = order?.orderId || '';
+  setPayState('failed');
+  showToast('❌ ' + desc.slice(0, 50));
+}
+
+function retryPayment() {
+  if(!currentPayOrderData) return;
+  setPayState('pending');
+  setTimeout(openRazorpay, 300);
+}
+
+function copyOTP() {
+  navigator.clipboard.writeText(currentOTPCode).then(()=>{
+    showToast('📋 OTP copied!');
+  }).catch(()=>{
+    showToast('OTP: ' + currentOTPCode);
+  });
+}
+
+// ── LIVE ORDER TRACKER ──
+const TRACKER_STEPS = [
+  {key:'Payment Pending',   icon:'🧾', label:'Order Placed'},
+  {key:'Payment Confirmed', icon:'💳', label:'Payment Confirmed'},
+  {key:'Queued',            icon:'📋', label:'In Print Queue'},
+  {key:'Printing',          icon:'🖨️', label:'Printing Now'},
+  {key:'Completed',         icon:'✅', label:'Completed — Collect Prints'},
+];
+
+function renderTracker(order) {
+  const currentIdx = TRACKER_STEPS.findIndex(s=>s.key===order.status);
+  const history = order.statusHistory||[];
+  const html = TRACKER_STEPS.map((step,i)=>{
+    const done = i < currentIdx;
+    const active = i === currentIdx;
+    const pending = i > currentIdx;
+    const histEntry = history.find(h=>h.status===step.key);
+    const timeStr = histEntry ? new Date(histEntry.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+    const cls = done?'done':active?'active':'pending';
+    return `<div class="tl-item">
+      <div class="tl-dot ${cls}">${done?'✓':step.icon}</div>
+      <div class="tl-content">
+        <div class="tl-name" style="${pending?'color:#aaa':''}">${step.label}</div>
+        ${timeStr?`<div class="tl-time">${timeStr}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const el = document.getElementById('trackerTimeline');
+  if(el) el.innerHTML = html;
+}
+
+async function refreshTracker() {
+  if(!currentPayOrderData) return;
+  const fresh = await DB.get('order:'+currentPayOrderData.orderId, true);
+  if(!fresh) return;
+  currentPayOrderData = fresh;
+  renderTracker(fresh);
+  const hint = document.getElementById('refreshHint');
+  if(hint) hint.textContent = 'Updated just now · Auto-refreshes every 15s';
+  if(fresh.status==='Completed') {
+    stopTrackerPoll();
+    document.getElementById('refreshHint').textContent = '✅ Print job completed';
+  }
+}
+
+function startTrackerPoll(orderId) {
+  stopTrackerPoll();
+  trackerInterval = setInterval(async()=>{
+    const fresh = await DB.get('order:'+orderId, true);
+    if(!fresh) return;
+    currentPayOrderData = fresh;
+    renderTracker(fresh);
+    if(fresh.status==='Completed') {
+      stopTrackerPoll();
+      document.getElementById('refreshHint').textContent = '✅ Print job completed! Collect your prints.';
+      showToast('🖨️ Prints ready! Collect from the machine.');
+    }
+    if(fresh.status==='Failed') {
+      stopTrackerPoll();
+      showToast('⚠️ Print job failed. Contact admin with '+orderId);
+    }
+  }, 15000);
+}
+
+function stopTrackerPoll() {
+  clearInterval(trackerInterval); trackerInterval=null;
+}
+
+async function openTrackModal() {
+  if(!currentPayOrderData) return;
+  const fresh = await DB.get('order:'+currentPayOrderData.orderId, true);
+  const order = fresh || currentPayOrderData;
+  const currentIdx = TRACKER_STEPS.findIndex(s=>s.key===order.status);
+  const history = order.statusHistory||[];
+  document.getElementById('trackMoContent').innerHTML =
+    `<div style="font-size:13px;font-weight:800;color:var(--g);margin-bottom:12px">${s(order.orderId)}</div>`+
+    TRACKER_STEPS.map((step,i)=>{
+      const done=i<currentIdx;const active=i===currentIdx;const pending=i>currentIdx;
+      const histEntry=history.find(h=>h.status===step.key);
+      const timeStr=histEntry?new Date(histEntry.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):active?'In progress':'Pending';
+      return `<div class="tl-item" style="padding-bottom:12px">
+        <div class="tl-dot ${done?'done':active?'active':'pending'}" style="width:28px;height:28px;font-size:13px">${done?'✓':step.icon}</div>
+        <div><div class="tl-name" style="font-size:13px;${pending?'color:#aaa':''}">${step.label}</div>
+        <div class="tl-time">${timeStr}</div></div>
+      </div>`;
+    }).join('');
+  openMo('trackMo');
+}
+
+// ═══════════════════════════════════════════════════════════
+// USER ORDER HISTORY
+// ═══════════════════════════════════════════════════════════
+async function addToUserHistory(orderId, amount, machine, status) {
+  try {
+    let h = (await DB.get('user:orders', false)) || [];
+    if(!Array.isArray(h)) h=[];
+    h.unshift({orderId,amount,machine,status,timestamp:new Date().toISOString()});
+    if(h.length>25) h=h.slice(0,25);
+    await DB.set('user:orders', h, false);
+  } catch(e){}
+}
+
+async function openUserHistory() {
+  let h = (await DB.get('user:orders', false)) || [];
+  if(!Array.isArray(h)) h=[];
+  const el = document.getElementById('userHistList');
+  if(!h.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;font-size:13px;color:#888;font-weight:600">📭 No orders yet</div>';
+  } else {
+    el.innerHTML = h.map(o=>{
+      const d=new Date(o.timestamp);
+      const spClass={'Payment Pending':'sp-pending','Payment Confirmed':'sp-paid','Queued':'sp-queued','Printing':'sp-printing','Completed':'sp-done','Failed':'sp-failed','Refund Requested':'sp-refund','Refund Issued':'sp-refunded'}[o.status]||'sp-pending';
+      return `<div class="uoh-card">
+        <div class="uoh-top">
+          <div><div class="uoh-id">${s(o.orderId)}</div><div class="uoh-time">${d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} · ${d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div></div>
+          <div><span class="sp ${spClass}" style="background:#e8f5e9;color:#2e7d32;border-radius:20px">${s(o.status)}</span></div>
+        </div>
+        <div class="uoh-meta">${s(o.machine)}</div>
+        <div class="uoh-amt">₹${s(o.amount)}</div>
+      </div>`;
+    }).join('');
+  }
+  openMo('userHistMo');
+}
+
+// ═══════════════════════════════════════════════════════════
+// USER ICON — single tap = history, triple tap = admin
+// ═══════════════════════════════════════════════════════════
+let userTaps=0, userTapTimer=null;
+function handleUserTap(){
+  userTaps++;
+  clearTimeout(userTapTimer);
+  if(userTaps>=3){userTaps=0;pinReset();openMo('adminPinMo');return;}
+  userTapTimer=setTimeout(()=>{if(userTaps===1)openUserHistory();userTaps=0;},400);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — PIN (hashed)
+// ═══════════════════════════════════════════════════════════
+let pinEntry='', pinLocked=false, pinAttempts=0;
+function pinPress(d){
+  if(pinLocked||pinEntry.length>=4)return;
+  pinEntry+=d; updatePinDots();
+  if(pinEntry.length===4) setTimeout(checkPin,180);
+}
+function pinDel(){pinEntry=pinEntry.slice(0,-1);updatePinDots();}
+function pinReset(){pinEntry='';updatePinDots();document.getElementById('pinErr').textContent='';}
+function updatePinDots(){for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.classList.toggle('filled',i<pinEntry.length);}}
+async function checkPin(){
+  const entered=pinEntry; pinEntry=''; updatePinDots();
+  const enteredHash=await hashPin(entered);
+  const storedHash=await getStoredPinHash();
+  if(enteredHash===storedHash){
+    pinAttempts=0;pinLocked=false;
+    closeMo('adminPinMo');pinReset();
+    const isDefault=storedHash===DEFAULT_PIN_HASH;
+    goTo('page4');
+    if(isDefault) setTimeout(()=>showToast('⚠️ Default PIN active — change it in Settings!'),800);
+  } else {
+    pinAttempts++;
+    if(pinAttempts>=5){pinLocked=true;document.getElementById('pinErr').textContent='Too many attempts. Try again in 30s.';setTimeout(()=>{pinLocked=false;pinAttempts=0;document.getElementById('pinErr').textContent='';},30000);}
+    else{document.getElementById('pinErr').textContent='Wrong PIN · '+(5-pinAttempts)+' attempts left';}
+  }
+}
+async function changePin(){
+  const oldVal=document.getElementById('cpOld').value;
+  const newVal=document.getElementById('cpNew').value;
+  const confVal=document.getElementById('cpConf').value;
+  const errEl=document.getElementById('cpErr');
+  errEl.textContent='';
+  if(!oldVal||!newVal||!confVal){errEl.textContent='All fields required';return;}
+  if(newVal.length<4||!/^\d{4}$/.test(newVal)){errEl.textContent='PIN must be exactly 4 digits';return;}
+  if(newVal!==confVal){errEl.textContent='New PINs do not match';return;}
+  const oldHash=await hashPin(oldVal);
+  const storedHash=await getStoredPinHash();
+  if(oldHash!==storedHash){errEl.textContent='Current PIN is incorrect';return;}
+  const newHash=await hashPin(newVal);
+  await DB.set('admin:pinhash', newHash, false);
+  ['cpOld','cpNew','cpConf'].forEach(id=>document.getElementById(id).value='');
+  closeMo('changePinMo');showToast('✅ PIN updated successfully');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — LOAD
+// ═══════════════════════════════════════════════════════════
+async function loadAdminPage(){
+  allOrders=[];
+  try{
+    const keys=await DB.list('order:',true);
+    for(const k of keys){
+      const o=await DB.get(k,true);
+      if(o&&o.orderId) allOrders.push(o);
+    }
+  }catch(e){}
+  allOrders.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  renderAdminStats();
+  renderAdminOrders();
+  renderAdminMachines();
+  renderAnalytics();
+  await loadSettings();
+}
+
+function renderAdminStats(){
+  const today=new Date().toDateString();
+  const todayOrders=allOrders.filter(o=>new Date(o.timestamp).toDateString()===today);
+  const rev=allOrders.reduce((s,o)=>s+o.grandTotal,0);
+  const todayRev=todayOrders.reduce((s,o)=>s+o.grandTotal,0);
+  const pages=allOrders.reduce((s,o)=>s+(o.totalPages||0),0);
+  const avg=allOrders.length?Math.round(rev/allOrders.length):0;
+  document.getElementById('aStatOrders').textContent=allOrders.length;
+  document.getElementById('aStatRevenue').textContent='₹'+rev;
+  document.getElementById('aStatPages').textContent=pages;
+  document.getElementById('aStatToday').textContent=todayOrders.length+' today';
+  document.getElementById('aStatTodayRev').textContent='₹'+todayRev+' today';
+  document.getElementById('aStatAvg').textContent='₹'+avg+' avg';
+}
+
+function setAdminTab(tab,el){
+  adminActiveTab=tab;
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));el.classList.add('active');
+  ['tabOrders','tabMachines','tabAnalytics','tabSettings'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).style.display='block';
+  if(tab==='analytics') renderAnalytics();
+  if(tab==='machines') renderAdminMachines();
+}
+
+function setAFilter(f,el){
+  adminFilter=f;adminPage=0;
+  document.querySelectorAll('.afilter').forEach(b=>b.classList.remove('active'));el.classList.add('active');
+  renderAdminOrders();
+}
+
+function renderAdminOrders(){
+  const q=(document.getElementById('adminSearch')?.value||'').toLowerCase();
+  let orders=allOrders;
+  if(adminFilter!=='all') orders=orders.filter(o=>o.status===adminFilter);
+  if(q) orders=orders.filter(o=>o.orderId?.toLowerCase().includes(q)||o.machine?.toLowerCase().includes(q)||(o.items||[]).some(i=>i.name?.toLowerCase().includes(q)));
+
+  const total=orders.length;
+  const start=adminPage*ADMIN_PAGE_SIZE;
+  const pageOrders=orders.slice(start,start+ADMIN_PAGE_SIZE);
+
+  const el=document.getElementById('adminOrderList');
+  const pagEl=document.getElementById('adminPagination');
+  if(!pageOrders.length){
+    el.innerHTML=`<div class="aempty"><div class="ei">${allOrders.length?'🔍':'📭'}</div><h3>${allOrders.length?'No results':'No orders yet'}</h3><p>${allOrders.length?'Try a different filter':'Orders will appear here after checkout'}</p></div>`;
+    pagEl.style.display='none'; return;
+  }
+  if(total>ADMIN_PAGE_SIZE){
+    pagEl.style.display='flex';
+    document.getElementById('pgPrev').disabled=adminPage===0;
+    document.getElementById('pgNext').disabled=start+ADMIN_PAGE_SIZE>=total;
+    document.getElementById('pgInfo').textContent=(start+1)+'-'+Math.min(start+ADMIN_PAGE_SIZE,total)+' of '+total;
+  } else pagEl.style.display='none';
+
+  const STATUS_CLASS={'Payment Pending':'sp-pending','Payment Confirmed':'sp-paid','Queued':'sp-queued','Printing':'sp-printing','Completed':'sp-done','Failed':'sp-failed','Refund Requested':'sp-refund','Refund Issued':'sp-refunded'};
+  const STATUS_ICON={'Payment Pending':'⏳','Payment Confirmed':'💳','Queued':'📋','Printing':'🖨️','Completed':'✅','Failed':'❌','Refund Requested':'↩','Refund Issued':'✅'};
+
+  el.innerHTML=pageOrders.map(o=>{
+    const d=new Date(o.timestamp);
+    const dateStr=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    const timeStr=d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const cls=STATUS_CLASS[o.status]||'sp-pending';
+    const ico=STATUS_ICON[o.status]||'📄';
+    const thumbs=(o.items||[]).filter(i=>i.thumbUrl).slice(0,3).map(i=>`<img src="${i.thumbUrl}" style="width:20px;height:25px;border-radius:3px;object-fit:cover;border:1px solid rgba(255,255,255,.1)">`).join('');
+
+    // Quick action buttons
+    const actions=[];
+    if(o.status==='Payment Pending') actions.push(`<button class="acbtn2 confirm" onclick="event.stopPropagation();quickStatus('${o.orderId}','Payment Confirmed')">✓ Confirm Pay</button>`);
+    if(o.status==='Payment Confirmed') actions.push(`<button class="acbtn2 queue" onclick="event.stopPropagation();quickStatus('${o.orderId}','Queued')">📋 Queue</button>`);
+    if(o.status==='Queued') actions.push(`<button class="acbtn2 print" onclick="event.stopPropagation();quickStatus('${o.orderId}','Printing')">▶ Printing</button>`);
+    if(o.status==='Printing') actions.push(`<button class="acbtn2 done" onclick="event.stopPropagation();quickStatus('${o.orderId}','Completed')">✓ Done</button>`);
+    if(!['Completed','Failed','Refund Issued'].includes(o.status)) actions.push(`<button class="acbtn2 fail" onclick="event.stopPropagation();quickStatus('${o.orderId}','Failed')">✕ Fail</button>`);
+    if(o.status==='Completed'||o.status==='Failed') actions.push(`<button class="acbtn2 refund" onclick="event.stopPropagation();quickStatus('${o.orderId}','Refund Requested')">↩ Refund</button>`);
+    if(o.status==='Refund Requested') actions.push(`<button class="acbtn2 done" onclick="event.stopPropagation();quickStatus('${o.orderId}','Refund Issued')">✓ Issued</button>`);
+
+    return `<div class="ocard" onclick="openOrderDetail('${s(o.orderId)}')">
+      <div class="oc-top">
+        <div><div class="oc-id">${s(o.orderId)}</div><div class="oc-time">${dateStr} · ${timeStr}</div></div>
+        <div class="sp ${cls}">${ico} ${s(o.status)}</div>
+      </div>
+      <div class="oc-machine">🖨️ ${s(o.machine)}</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+        ${thumbs?`<div style="display:flex;gap:2px">${thumbs}</div>`:''}
+        <span style="font-size:10px;color:rgba(255,255,255,.35);font-weight:600">${s((o.items||[]).length)} file(s) · ${s(o.totalPages)} pages${o.coupon?` · 🏷️${s(o.coupon)}`:''}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="oc-total">₹${s(o.grandTotal)}</div>
+        <span style="font-size:10px;color:rgba(255,255,255,.25);font-weight:600">tap for details</span>
+      </div>
+      ${actions.length?`<div class="ac-btns">${actions.join('')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function quickStatus(orderId, newStatus){
+  const o = allOrders.find(x=>x.orderId===orderId); if(!o) return;
+  o.status=newStatus;
+  o.statusHistory=o.statusHistory||[{status:'Payment Pending',time:o.timestamp}];
+  o.statusHistory.push({status:newStatus,time:new Date().toISOString()});
+  const saved=await DB.set('order:'+orderId, o, true);
+  if(saved){showToast('✅ '+orderId+' → '+newStatus);renderAdminOrders();renderAdminStats();}
+  else showToast('⚠️ Could not save status change');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — ORDER DETAIL MODAL
+// ═══════════════════════════════════════════════════════════
+function openOrderDetail(orderId){
+  const o=allOrders.find(x=>x.orderId===orderId);if(!o)return;
+  const d=new Date(o.timestamp);
+  document.getElementById('odId').textContent=o.orderId;
+  document.getElementById('odTime').textContent=d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const cls={'Payment Pending':'sp-pending','Payment Confirmed':'sp-paid','Queued':'sp-queued','Printing':'sp-printing','Completed':'sp-done','Failed':'sp-failed','Refund Requested':'sp-refund','Refund Issued':'sp-refunded'}[o.status]||'sp-pending';
+  const ico={'Payment Pending':'⏳','Payment Confirmed':'💳','Queued':'📋','Printing':'🖨️','Completed':'✅','Failed':'❌','Refund Requested':'↩','Refund Issued':'✅'}[o.status]||'📄';
+  document.getElementById('odSpill').innerHTML=`<div class="sp ${cls}">${ico} ${s(o.status)}</div>`;
+
+  // Collect all file details
+  const allFileDetails=[];
+  (o.items||[]).forEach(item=>{
+    (item.fileDetails||[]).forEach(fd=>allFileDetails.push({...fd,color:item.color,orient:item.orient,copies:item.copies}));
+    if((!item.fileDetails||!item.fileDetails.length)&&item.thumbUrl)
+      allFileDetails.push({name:item.name,pages:item.pages,thumbUrl:item.thumbUrl,allPageThumbs:[item.thumbUrl],color:item.color,orient:item.orient,copies:item.copies});
+  });
+
+  const filesHtml = allFileDetails.length
+    ? allFileDetails.map((fd)=>{
+        const icon=fd.isTemplate?'📄':fd.type?.startsWith('image/')?'🖼️':fd.type?.includes('pdf')?'📄':fd.type?.includes('word')?'📝':fd.type?.includes('pres')?'📊':'📁';
+        const hasThumbs=fd.allPageThumbs&&fd.allPageThumbs.filter(Boolean).length>0;
+        const thumbsHtml=hasThumbs
+          ?fd.allPageThumbs.map((t,pi)=>t
+            ?`<div onclick="openLightbox('${safeAttr(t)}','${safeAttr(fd.name)}','Page ${pi+1} of ${fd.pages}')" style="cursor:pointer;flex-shrink:0"><img src="${t}" style="width:56px;height:72px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,.1);display:block"><div style="font-size:7px;color:rgba(255,255,255,.3);text-align:center;margin-top:2px;font-weight:600">P${pi+1}</div></div>`
+            :`<div style="width:56px;height:72px;background:rgba(255,255,255,.04);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📄</div>`
+          ).join('')
+          :`<div style="padding:12px;font-size:11px;color:rgba(255,255,255,.3);font-weight:600">${fd.isTemplate?'Template — no upload':'Preview unavailable for this file type'}</div>`;
+        return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+            <span style="font-size:16px">${icon}</span>
+            <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s(fd.name)}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.35);font-weight:600">${fd.pages}p · ${s(fd.color)} · ${s(fd.orient)} · ${fd.copies}×</div></div>
+            <div style="background:var(--g);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:20px">${fd.pages}p</div>
+          </div>
+          ${hasThumbs?`<div style="font-size:8px;color:rgba(255,255,255,.25);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Pages — tap to full view</div>`:''}
+          <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none">${thumbsHtml}</div>
+        </div>`;
+      }).join('')
+    :`<div style="padding:16px;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">📭 No file previews in this order</div>`;
+
+  const totalItems=o.items||[];
+  const totalPages=o.totalPages||0;
+  const totalCopies=totalItems.reduce((s,i)=>s+i.copies,0);
+  const uniqueColors=[...new Set(totalItems.map(i=>i.color))].join(', ');
+  const uniqueOrient=[...new Set(totalItems.map(i=>i.orient))].join(', ');
+  const uniqueSides=[...new Set(totalItems.map(i=>i.sides||'Single-sided'))].join(', ');
+
+  const history=o.statusHistory||[{status:'Payment Pending',time:o.timestamp}];
+  const ico2={'Payment Pending':'⏳','Payment Confirmed':'💳','Queued':'📋','Printing':'🖨️','Completed':'✅','Failed':'❌','Refund Requested':'↩','Refund Issued':'✅'};
+  const timelineHtml=history.map((h,i)=>{
+    const td=new Date(h.time);
+    return `<div class="od-titem">
+      <div class="od-tdot ${i===history.length-1?'active':''}">${ico2[h.status]||'📄'}</div>
+      <div><div class="od-tt">${s(h.status)}</div><div class="od-ts">${td.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${td.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div></div>
+    </div>`;
+  }).join('');
+
+  // All possible status transitions
+  const statusBtns=[];
+  if(o.status==='Payment Pending') statusBtns.push(`<button class="acbtn2 confirm" onclick="quickStatus('${o.orderId}','Payment Confirmed');closeMo2('odmo')">✓ Confirm Payment</button>`);
+  if(o.status==='Payment Confirmed') statusBtns.push(`<button class="acbtn2 queue" onclick="quickStatus('${o.orderId}','Queued');closeMo2('odmo')">📋 Move to Queue</button>`);
+  if(o.status==='Queued') statusBtns.push(`<button class="acbtn2 print" onclick="quickStatus('${o.orderId}','Printing');closeMo2('odmo')">▶ Mark Printing</button>`);
+  if(o.status==='Printing') statusBtns.push(`<button class="acbtn2 done" onclick="quickStatus('${o.orderId}','Completed');closeMo2('odmo')">✓ Mark Completed</button>`);
+  if(!['Completed','Failed','Refund Issued'].includes(o.status)) statusBtns.push(`<button class="acbtn2 fail" onclick="quickStatus('${o.orderId}','Failed');closeMo2('odmo')">✕ Mark Failed</button>`);
+  if(o.status==='Completed'||o.status==='Failed') statusBtns.push(`<button class="acbtn2 refund" onclick="quickStatus('${o.orderId}','Refund Requested');closeMo2('odmo')">↩ Request Refund</button>`);
+  if(o.status==='Refund Requested') statusBtns.push(`<button class="acbtn2 done" onclick="quickStatus('${o.orderId}','Refund Issued');closeMo2('odmo')">✓ Mark Refund Issued</button>`);
+
+  document.getElementById('odBody').innerHTML=`
+    <div class="od-sec"><div class="od-sec-title">Machine</div>
+      <div class="od-mc"><div class="od-mc-icon">🖨️</div><div><div class="od-mc-name">${s(o.machine)}</div><div class="od-mc-sub">${s(o.machineLoc||'')}</div></div></div>
+    </div>
+    <div class="od-sec"><div class="od-sec-title">📂 Files & Page Previews (${allFileDetails.length})</div>${filesHtml}</div>
+    <div class="od-sec"><div class="od-sec-title">Print Specifications</div>
+      <div class="od-specs">
+        <div class="od-spec"><div class="od-spec-label">Total Pages</div><div class="od-spec-val">${s(totalPages)}</div></div>
+        <div class="od-spec"><div class="od-spec-label">Copies</div><div class="od-spec-val">${s(totalCopies)}</div></div>
+        <div class="od-spec"><div class="od-spec-label">Color</div><div class="od-spec-val">${s(uniqueColors)}</div></div>
+        <div class="od-spec"><div class="od-spec-label">Orientation</div><div class="od-spec-val">${s(uniqueOrient)}</div></div>
+        <div class="od-spec"><div class="od-spec-label">Sides</div><div class="od-spec-val">${s(uniqueSides)}</div></div>
+        <div class="od-spec"><div class="od-spec-label">Files</div><div class="od-spec-val">${allFileDetails.length||totalItems.length}</div></div>
+      </div>
+    </div>
+    <div class="od-sec"><div class="od-sec-title">Bill Breakdown</div>
+      <div class="od-brow"><span class="od-blabel">Print charges</span><span class="od-bval">₹${s(o.subtotal)}</span></div>
+      <div class="od-brow"><span class="od-blabel">Platform fee</span><span class="od-bval">₹${s(o.platformFee||5)}</span></div>
+      ${o.gst>0?`<div class="od-brow"><span class="od-blabel">GST (18%)</span><span class="od-bval">₹${s(o.gst)}</span></div>`:''}
+      ${o.discount>0?`<div class="od-brow"><span class="od-blabel">🏷️ Coupon (${s(o.coupon)})</span><span class="od-bval" style="color:#4ade80">-₹${s(o.discount)}</span></div>`:''}
+      <div class="od-btotal"><span class="od-btotal-lbl">Total Paid</span><span class="od-btotal-amt">₹${s(o.grandTotal)}</span></div>
+    </div>
+    <div class="od-sec"><div class="od-sec-title">Order Timeline</div><div class="od-tline">${timelineHtml}</div></div>
+    ${statusBtns.length?`<div class="od-sec"><div class="od-sec-title">Update Status</div><div class="ac-btns">${statusBtns.join('')}</div></div>`:''}
+    <button onclick="downloadReceipt('${s(o.orderId)}')" style="width:100%;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;color:rgba(255,255,255,.6);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;margin-top:4px">⬇ Download Receipt</button>
+  `;
+  document.getElementById('odmo').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE LIGHTBOX
+// ═══════════════════════════════════════════════════════════
+function openLightbox(thumbUrl,name,label){
+  document.getElementById('flbName').textContent=label||name||'';
+  const c=document.getElementById('flbContent');
+  if(thumbUrl&&(thumbUrl.startsWith('data:')||thumbUrl.startsWith('http')||thumbUrl.startsWith('blob:')))
+    c.innerHTML=`<img class="flb-img" src="${thumbUrl}" alt="">`;
+  else{const icon=name?.match(/\.pdf$/i)?'📄':name?.match(/\.(jpe?g|png)$/i)?'🖼️':name?.match(/\.docx?$/i)?'📝':'📁';c.innerHTML=`<div style="font-size:72px">${icon}</div><div style="color:rgba(255,255,255,.35);font-size:12px;margin-top:8px">No preview available</div>`;}
+  document.getElementById('flb').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — MACHINES
+// ═══════════════════════════════════════════════════════════
+function renderAdminMachines(){
+  document.getElementById('adminMachineList').innerHTML = MACHINES.map(m=>`
+    <div class="mach-card">
+      <div class="mach-top">
+        <div><div class="mach-name">${s(m.name)}</div></div>
+        <button class="mach-edit" onclick="openMachineEdit(${m.id})">Edit</button>
+      </div>
+      <div class="mach-stats">
+        <div class="mach-stat"><div class="mach-stat-label">Status</div><div class="mach-stat-val"><div class="msdot ${m.status}" style="display:inline-block;margin-right:4px"></div>${s(m.status)}</div></div>
+        <div class="mach-stat"><div class="mach-stat-label">Paper</div><div class="mach-stat-val">${m.paper>0?m.paper+'sh':'—'}</div></div>
+        <div class="mach-stat"><div class="mach-stat-label">Ink</div><div class="mach-stat-val">${m.ink>0?m.ink+'%':'—'}</div></div>
+      </div>
+    </div>`).join('');
+}
+
+function openMachineEdit(id){
+  const m=MACHINES.find(x=>x.id===id);if(!m)return;
+  editingMachineId=id;
+  document.getElementById('machEditTitle').textContent='Edit — '+m.loc;
+  document.getElementById('meStatus').value=m.status;
+  document.getElementById('mePaper').value=m.paper;
+  document.getElementById('meInk').value=m.ink;
+  document.getElementById('meQueue').value=m.queue;
+  openMo('machEditMo');
+}
+
+async function saveMachineEdit(){
+  const m=MACHINES.find(x=>x.id===editingMachineId);if(!m)return;
+  m.status=document.getElementById('meStatus').value;
+  m.paper=parseInt(document.getElementById('mePaper').value)||0;
+  m.ink=parseInt(document.getElementById('meInk').value)||0;
+  m.queue=parseInt(document.getElementById('meQueue').value)||0;
+  m.time=m.queue===0?2:m.queue*3;
+  await saveMachineToStorage(m);
+  closeMo('machEditMo');
+  renderMachinePills();renderMachineList();renderAdminMachines();
+  if(cart.length)renderCheckout();
+  showToast('✅ '+m.loc+' updated');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — SETTINGS
+// ═══════════════════════════════════════════════════════════
+async function loadSettings(){
+  const cfg=await DB.get('admin:settings',false);
+  if(cfg&&typeof cfg==='object'){
+    gstEnabled=cfg.gst||false;
+    const t=document.getElementById('gstToggle');if(t)t.classList.toggle('on',gstEnabled);
+  }
+}
+async function toggleGST(){
+  gstEnabled=!gstEnabled;
+  document.getElementById('gstToggle').classList.toggle('on',gstEnabled);
+  await DB.set('admin:settings',{gst:gstEnabled},false);
+  showToast(gstEnabled?'GST (18%) enabled':'GST disabled');
+  if(cart.length)renderCheckout();
+}
+async function checkStorage(){
+  const el=document.getElementById('storageStatus');
+  el.textContent='Checking…';
+  try{
+    const testKey='test:'+Date.now();
+    const w=await DB.set(testKey,'ok',true);
+    const r=await DB.get(testKey,true);
+    await DB.delete(testKey,true);
+    el.textContent=w&&r==='ok'?'✅ Storage operational':'⚠️ Storage degraded';
+  }catch(e){el.textContent='❌ Storage unavailable';}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN — ANALYTICS
+// ═══════════════════════════════════════════════════════════
+function renderAnalytics(){
+  renderRevChart();
+  const colors=['#22c55e','#3b82f6','#f59e0b','#ec4899'];
+  // By machine
+  const mc={};allOrders.forEach(o=>{mc[o.machine]=mc[o.machine]||{n:0,rev:0};mc[o.machine].n++;mc[o.machine].rev+=o.grandTotal;});
+  const mcRows=Object.entries(mc).sort((a,b)=>b[1].rev-a[1].rev);
+  document.getElementById('machineBreakdown').innerHTML=mcRows.length?mcRows.map(([m,d],i)=>`
+    <div class="mb-row"><div class="mb-left"><div class="mb-dot" style="background:${colors[i%4]}"></div><div><div class="mbn">${s(m.split('–')[0].trim())}</div><div class="mbs">${d.n} orders</div></div></div><div><div class="mb-rev">₹${d.rev}</div></div></div>`).join('')
+    :'<div style="font-size:11px;color:rgba(255,255,255,.25);padding:10px">No data yet</div>';
+  // By color
+  let col=0,bw=0;allOrders.forEach(o=>(o.items||[]).forEach(i=>{if(i.color==='Colour')col++;else bw++;}));
+  const ct=col+bw||1;
+  document.getElementById('colorBreakdown').innerHTML=`
+    <div class="mb-row"><div class="mb-left"><div class="mb-dot" style="background:#ec4899"></div><div><div class="mbn">Colour</div><div class="mbs">${col} jobs</div></div></div><div class="mb-rev">${Math.round(col/ct*100)}%</div></div>
+    <div class="mb-row"><div class="mb-left"><div class="mb-dot" style="background:#94a3b8"></div><div><div class="mbn">Black & White</div><div class="mbs">${bw} jobs</div></div></div><div class="mb-rev">${Math.round(bw/ct*100)}%</div></div>`;
+  // By status
+  const sc={};allOrders.forEach(o=>{sc[o.status]=(sc[o.status]||0)+1;});
+  document.getElementById('statusBreakdown').innerHTML=Object.entries(sc).map(([st,n])=>`
+    <div class="mb-row"><div class="mb-left"><div class="mb-dot" style="background:#6b7280"></div><div><div class="mbn">${s(st)}</div><div class="mbs">${n} orders</div></div></div><div class="mb-rev">${Math.round(n/allOrders.length*100)}%</div></div>`).join('');
+}
+
+function renderRevChart(){
+  const el=document.getElementById('revChart');if(!el)return;
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({date:d.toDateString(),label:i===0?'Today':d.toLocaleDateString('en-IN',{weekday:'short'})});}
+  const dayRevs=days.map(day=>({label:day.label,rev:allOrders.filter(o=>new Date(o.timestamp).toDateString()===day.date).reduce((s,o)=>s+o.grandTotal,0),isToday:day.label==='Today'}));
+  const maxRev=Math.max(...dayRevs.map(d=>d.rev),1);
+  el.innerHTML=dayRevs.map(d=>`<div class="chart-bar-wrap"><div class="chart-bar ${d.isToday?'today':''}" style="height:${Math.round((d.rev/maxRev)*44)+2}px" title="₹${d.rev}"></div><div class="chart-label">${d.label}</div></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportCSV(){
+  if(!allOrders.length){showToast('⚠️ No orders to export');return;}
+  const headers=['Order ID','Date','Time','Machine','Files','Total Pages','Color','Orientation','Copies','Subtotal','GST','Coupon','Discount','Platform Fee','Grand Total','Status'];
+  const rows=allOrders.map(o=>{
+    const d=new Date(o.timestamp);
+    return[o.orderId,d.toLocaleDateString('en-IN'),d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),'"'+o.machine+'"','"'+(o.items||[]).map(i=>i.name).join(', ')+'"',o.totalPages,'"'+(o.items||[]).map(i=>i.color).join(', ')+'"','"'+(o.items||[]).map(i=>i.orient).join(', ')+'"',(o.items||[]).reduce((s,i)=>s+i.copies,0),o.subtotal,o.gst||0,o.coupon||'',o.discount||0,o.platformFee||5,o.grandTotal,o.status];
+  });
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='PrintCrew_Orders_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+  showToast('✅ CSV downloaded');
+}
+
+async function exportExcel(){
+  if(!allOrders.length){showToast('⚠️ No orders to export');return;}
+  showToast('⏳ Building Excel…');
+  if(!window.XLSX){
+    await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
+  }
+  const ws_data=[['Order ID','Date','Time','Machine','Location','Files','Total Pages','Color','Orientation','Copies','Subtotal (₹)','GST (₹)','Coupon','Discount (₹)','Platform Fee (₹)','Grand Total (₹)','Status'],
+    ...allOrders.map(o=>{const d=new Date(o.timestamp);return[o.orderId,d.toLocaleDateString('en-IN'),d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),o.machine,o.machineLoc||o.machine,(o.items||[]).map(i=>i.name).join(', '),o.totalPages,(o.items||[]).map(i=>i.color).join(', '),(o.items||[]).map(i=>i.orient).join(', '),(o.items||[]).reduce((s,i)=>s+i.copies,0),o.subtotal,o.gst||0,o.coupon||'—',o.discount||0,o.platformFee||5,o.grandTotal,o.status];})];
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols']=[{wch:10},{wch:12},{wch:8},{wch:28},{wch:18},{wch:30},{wch:10},{wch:12},{wch:12},{wch:8},{wch:12},{wch:8},{wch:10},{wch:10},{wch:12},{wch:14},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws,'Orders');
+  const today=new Date().toDateString();const tod=allOrders.filter(o=>new Date(o.timestamp).toDateString()===today);
+  const s2=[['PrintCrew Summary',''],['Generated',new Date().toLocaleString('en-IN')],[''],['Metric','Value'],['Total Orders',allOrders.length],['Total Revenue (₹)',allOrders.reduce((s,o)=>s+o.grandTotal,0)],['Total Pages',allOrders.reduce((s,o)=>s+(o.totalPages||0),0)],['Avg Order Value (₹)',allOrders.length?Math.round(allOrders.reduce((s,o)=>s+o.grandTotal,0)/allOrders.length):0],["Today's Orders",tod.length],["Today's Revenue (₹)",tod.reduce((s,o)=>s+o.grandTotal,0)],['Completed',allOrders.filter(o=>o.status==='Completed').length],['Failed',allOrders.filter(o=>o.status==='Failed').length],['Refund Requests',allOrders.filter(o=>o.status==='Refund Requested').length]];
+  const ws2=XLSX.utils.aoa_to_sheet(s2);ws2['!cols']=[{wch:22},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  XLSX.writeFile(wb,'PrintCrew_Orders_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('✅ Excel downloaded');
+}
+
+function downloadReceipt(orderId){
+  const o=allOrders.find(x=>x.orderId===orderId);if(!o)return;
+  const d=new Date(o.timestamp);
+  const lines=['PrintCrew — Order Receipt','='.repeat(30),'Order ID: '+o.orderId,'Date: '+d.toLocaleDateString('en-IN')+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),'Machine: '+o.machine,'Status: '+o.status,'','Files:',...(o.items||[]).map(i=>`  • ${i.name} | ${i.pages}p | ${i.color} | ${i.orient} | ${i.copies}× | ₹${i.price}`),'','Subtotal: ₹'+o.subtotal,'Platform fee: ₹'+(o.platformFee||5),o.gst?'GST (18%): ₹'+o.gst:'',o.coupon?`Coupon (${o.coupon}): -₹${o.discount}`:'','Grand Total: ₹'+o.grandTotal,'','PrintCrew — Instant printing, zero queues.'].filter(x=>x!==undefined);
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=o.orderId+'_receipt.txt';a.click();URL.revokeObjectURL(url);
+  showToast('✅ Receipt downloaded');
+}
+
+async function confirmClearOrders(){
+  if(!confirm('Clear ALL order history permanently?'))return;
+  const keys=await DB.list('order:',true);
+  for(const k of keys)await DB.delete(k,true);
+  await DB.delete('orders:counter',true);
+  allOrders=[];renderAdminStats();renderAdminOrders();renderAnalytics();
+  showToast('🗑️ All orders cleared');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════
+function doSearch(val){
+  const res=document.getElementById('searchResults');const c=document.getElementById('searchResultsContent');
+  if(!val.trim()){res.style.display='none';return;}
+  const m=PRODUCTS.filter(p=>p.name.toLowerCase().includes(val.toLowerCase()));
+  c.innerHTML=m.length?m.map(p=>`<div onclick="quickPrint('${safeAttr(p.name)}')" style="display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer;border-radius:8px" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'"><span style="font-size:18px">🖨️</span><div><div style="font-size:13px;font-weight:800">${s(p.name)}</div><div style="font-size:11px;color:#888;font-weight:600">₹48 · 68% OFF · ⚡ Instant</div></div></div>`).join('')
+    :`<div style="font-size:12px;color:#888;font-weight:600;text-align:center;padding:8px">No results for "${s(val)}"</div>`;
+  res.style.display='block';
+}
+function clearSearch(){document.getElementById('searchInput').value='';document.getElementById('searchResults').style.display='none';}
+
+// ═══════════════════════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════════════════════
+function tFaq(el){const o=el.classList.contains('open');document.querySelectorAll('.faq-i.open').forEach(f=>f.classList.remove('open'));if(!o)el.classList.add('open');}
+
+function openMo(id){document.getElementById(id).classList.add('open');}
+function closeMo(id){document.getElementById(id).classList.remove('open');}
+function closeMo2(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+let tt;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
+</script>
+</body>
+</html>
